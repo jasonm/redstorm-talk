@@ -1,0 +1,324 @@
+== Talk organization
+
+25min + 5min questions
+
+possible topics
+  wiki/Rationale.md
+  wiki/Concepts.md
+
+  why storm is interesting
+    well-defined primitives for scalable, robust, fault-tolerant stream processing
+    good documentation
+    smart, thoughtful developer and userbase
+  batch and streaming approaches
+  alternative tools
+  complementary tools (stream + batch = lambda)
+  concepts: streams of tuples, spouts, bolts
+  semantics: incremental, idempotent, at-least-once, exactly-once
+  parts: Nimbus, Supervisor (node), Zookeeper
+  storm's integration approaches (JVM language-binding, thrift, shell)
+  what is redstorm
+    let you describe spouts, bolts, and topologies in jruby
+    without this, you could still describe the topo in Java + pure ruby shell bolts
+    _ does a thrift ruby binding exist?  what would this provide (topo and spout/bolt, or only one?)?
+  showing it live
+
+== The Intro
+
+: /Users/jason/dev/storm/wiki/Rationale.md
+
+"""
+Storm is a free and open source distributed realtime computation system.
+Storm reliably process unbounded streams of data
+Storm does for realtime processing what Hadoop did for batch processing.
+Storm has many use cases: realtime analytics, online machine learning, continuous computation, distributed RPC, ETL, and more. 
+http://storm-project.net/
+"""
+
+Basic use-case sets:
+* streaming processing
+  _ what are some canonical examples?
+* distributed RPC
+  _ what are some canonical examples?
+* continuous computation
+  _ what are some canonical examples?
+
+---
+RedStorm: Distributed realtime computation in Ruby.
+
+"""
+Storm is a free and open source distributed realtime computation framework.  It
+provides a clean, declarative abstraction for streaming computations.  It's
+durable, reliable, and simple to scale.
+
+Some use cases of Storm include realtime analytics, online machine learning,
+continuous computation, distributed RPC, and ETL.
+
+You'll learn the basic ideas of Storm, and how RedStorm makes it easy to write
+Storm topologies in Ruby.
+"""
+---
+
+In use at:
+  https://github.com/nathanmarz/storm/wiki/Powered-By
+
+Other High-level Ideas
+  ES/CQRS
+    Event Sourcing / Command-Query Responsibility Separation
+    http://www.manning-sandbox.com/thread.jspa?threadID=48288&tstart=60
+  batch processing (hadoop) vs stream processing (storm, esper, ??) vs adhoc querying (dremel, drill, impala)
+
+Other CEPs (S4, Flume) (Complex Event Processing)
+  Big List
+    http://blog.sematext.com/2011/09/26/event-stream-processor-matrix/
+
+  http://www.quora.com/What-would-you-choose-between-Flume-Yahoo-S4-and-Backtype-Twitter-Storm-and-why
+    http://incubator.apache.org/s4/
+    https://groups.google.com/forum/#!topic/s4-project/aRr-_RiB4Zc%5B1-25%5D
+
+Producers/Incoming messaging
+  Rabbit vs Kafka vs Kestrel
+http://www.quora.com/RabbitMQ/RabbitMQ-vs-Kafka-which-one-for-durable-messaging-with-good-query-features
+
+Adhoc Queries
+  Cloudera Impala
+    http://news.ycombinator.com/item?id=4692789
+    http://www.wired.com/wiredenterprise/2012/10/cloudera-impala-hadoop/
+    http://blog.cloudera.com/blog/2012/10/cloudera-impala-real-time-queries-in-apache-hadoop-for-real/
+    https://ccp.cloudera.com/display/IMPALA10BETADOC/Cloudera+Impala+1.0+Beta+Documentation
+    http://techcrunch.com/2012/08/17/googles-real-time-big-data-tool-cloned-by-apache-drill/
+      """
+      ...the big difference between Dremel and other real-time big data systems such as Storm and S4 is that these are streaming engines,
+      while Dremel is designed for ad-hoc querying, ie really fast search results.
+      """
+  http://gigaom.com/cloud/for-fast-interactive-hadoop-queries-drill-may-be-the-answer/
+
+Other Talks
+  http://storm-project.net/documentation.html
+
+Contrast to batch/hadoop:
+  Ilya: http://www.igvita.com/2011/05/27/streamsql-event-processing-with-esper/
+  """
+  I'm not at all advocating to replace all map-reduce functionality with
+  StreamSQL. Rather, my view is that due to recent popularity of Hadoop, it feels
+  like many projects use a very simple decision tree.. Can it fit in my regular
+  rdbms: yes, keep going, no, time for Hadoop!
+  
+  If you need to store all of your data and you need to execute queries which
+  span large time-frames, or you do not know the queries up front, then Hadoop is
+  great. However, in many cases, a stream processing model can allow you to get
+  at your answers in a much faster, and cheaper way. It's not an either-or,
+  rather, I feel like stream processing is just an under-explored area in
+  general. In fact, you're probably best of using both systems in the right
+  contexts.
+  """
+
+  _ More use cases: http://www.infoq.com/presentations/Storm
+
+What about...
+  ...Hadoop?
+    https://groups.google.com/forum/?fromgroups=#!topic/storm-user/4it768NTvwA%5B1-25%5D
+    """
+    Batch processing and realtime processing have different properties and 
+    tradeoffs. With Hadoop, you can run idempotent functions on all your 
+    data at once, but with high latency. With Storm, you can run 
+    incremental functions very quickly, but since you don't look at the 
+    whole dataset at once you can't run the same range of functions. 
+
+    It turns out that these two paradigms complement each other extremely 
+    well. All of our applications have both a batch processing component 
+    and a realtime processing component. 
+
+    You can see the slides for a presentation I gave about this batch/ 
+    realtime approach here: http://www.slideshare.net/nathanmarz/the-secrets-of-building-realtime-big-data-systems 
+
+    Nathan 
+    """
+
+    https://groups.google.com/d/msg/storm-user/sdhzLFy_Dfo/q97FEQWMy6gJ
+    """
+    One important thing to recognize is that 
+    there are fundamental differences between batch and realtime 
+    computation. Echoing what Ashley said, with batch processing it's easy 
+    to get idempotence, whereas when dealing with incremental algorithms 
+    and at-least-once semantics it's harder to achieve idempotence. 
+
+    ^^ example: counting.  at-least-once + incremental -> idempotence is hard.
+       you'd need exactly-once semantics; otherwise counts would be too high.
+
+    ^^ so, in storm, how would you reliably and accurately (exactly-once)
+       count something?
+
+       read: Transactional-topologies
+             Trident-tutorial
+             Trident-state
+
+    The differing semantics between batch and stream processing means that 
+    the tools for batch processing don't have a clear mapping to stream 
+    processing. For example, joins as defined in batch processing don't 
+    make sense when dealing with infinite data streams. 
+
+    Additionally, you don't always do the same thing in batch as in 
+    realtime. It's common to use an approximation algorithm for the 
+    realtime portion and the exact algorithm for the batch portion, and 
+    the batch portion corrects the realtime portion over time. 
+
+      ^^ like a bloom filter for counting membership?  find this out, it's
+         in one of NM's talks
+
+    Long term I definitely think a higher level abstraction over batch and 
+    realtime will emerge. It's something I think about a lot, but it's not 
+    clear yet how to provide the conciseness that you want while still 
+    providing the flexibility to make approximations, CAP tradeoffs, etc. 
+    Eventually we'll figure that stuff out -- we just need more experience 
+    hammering against these problems using these new approaches. 
+    """
+
+  ...Esper?
+    http://esper.codehaus.org/
+    http://www.igvita.com/2011/05/27/streamsql-event-processing-with-esper/
+    http://www.infoq.com/news/Esper--ESP-CEP
+
+CEP
+  http://en.wikipedia.org/wiki/Complex_event_processing
+
+Proofing
+  http://storm-project.net/ users
+  Started by Nathan Marz of Backtype (social analytics) -> acquihired by Twitter.
+  Open sourced Storm at Strange Loop in Sep 2011.
+
+Moving parts
+  Nimbus, Supervisor (Node), Zookeeper
+  http://www.mathieu-elie.net/twitter-storm-real-time-computation-on-top-of-zeromq/
+
+Under the hood
+  Clojure, Java
+  0MQ, Zookeeper, Thrift
+
+Java, JRuby, Clojure, Clojars, Leiningen
+  https://clojars.org/
+
+Language interop
+  Runs on JVM, so JVM languages by default
+  Non-JVM languages by STDIO
+    https://github.com/nathanmarz/storm/wiki/Using-non-JVM-languages-with-Storm
+
+
+== Semantics, theory
+Storm is a good implementation, but also a vocabulary for distributed
+computing. opaque/idempotent transactional spouts, spouts/bolts/tuples, a
+thoughtful set of semantics
+
+How to build exactly-once semantics atop:
+  https://github.com/nathanmarz/storm/wiki/Transactional-topologies
+
+* Lambda architecture (batch layer + speed layer):
+  * http://www.slideshare.net/nathanmarz/the-secrets-of-building-realtime-big-data-systems
+
+== Talks
+
+Jason reading:
+  _ Tutorial: https://github.com/nathanmarz/storm/wiki/Tutorial
+  _ Trident tutorial: https://github.com/nathanmarz/storm/wiki/Trident-tutorial
+  _ http://engineering.twitter.com/2011/08/storm-is-coming-more-details-and-plans.html
+  _ http://www.datasalt.com/2012/01/real-time-feed-processing-with-storm/storm
+
+* Nathan Marz talk @ SF Data Mining, March 2012
+  * Slides: http://www.slideshare.net/nathanmarz/storm-distributed-and-faulttolerant-realtime-computation
+  * Video 1/3: http://www.youtube.com/watch?v=biKMS3HILJ4
+  * Video 2/3: http://www.youtube.com/watch?v=6oPP37r1NKM
+  * Video 3/3: http://www.youtube.com/watch?v=rR2m77gnaBU
+* Or this talk @ ETE, April 2012
+  * https://vimeo.com/40972420
+  * Slides only: http://chariotsolutions.com/presentations/storm-distributed-and-fault-tolerant-realtime-comp
+
+== The Ruby
+
+Ruby interop
+  https://github.com/colinsurprenant/redstorm
+
+RedStorm example: Tweitgeist
+  _ screenshot http://tweitgeist.colinsurprenant.com/
+  https://github.com/colinsurprenant/tweitgeist
+  All stream processing in Ruby
+    https://github.com/colinsurprenant/tweitgeist/blob/master/lib/tweitgeist/storm/tweitgeist_topology.rb
+  Dumps into Redis
+    https://github.com/colinsurprenant/tweitgeist/blob/master/lib/tweitgeist/storm/merge_bolt.rb
+  Node server polls Redis
+    https://github.com/colinsurprenant/tweitgeist/blob/master/lib/viewer/server.coffee
+
+== The Bonus Content
+
+More Features
+  Linear DRPC
+    https://github.com/nathanmarz/storm/wiki/Distributed-RPC
+  Trident
+    idempotent semantics with transactional topologies
+    https://github.com/nathanmarz/storm/wiki/Trident-tutorial
+    https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/trident/TridentReach.java
+
+Kestrel
+  http://robey.github.com/kestrel/docs/guide.html
+  http://github.com/nathanmarz/storm-kestrel
+  https://github.com/freels/kestrel-client
+
+Integrations
+  https://github.com/nathanmarz/storm-contrib
+
+  RDMBS dumper bolt
+  Redis PubSub
+  Apache Kafka (distributed pubsub)
+  SQS, Cassandra, MongoDB, HBase...
+
+Deployment
+  Mesos: Efficiently share distributed computing resources to multiple applications
+    http://incubator.apache.org/mesos/
+    https://github.com/nathanmarz/storm-mesos
+
+  Dead-simple deploys to AWS clusters (including spot instances) (includes Ganglia for resource monitoring):
+    https://github.com/nathanmarz/storm-deploy
+
+Changing topologies
+  Storm is intentionally designed without support for changing topologies at
+  runtime, resulting in a simpler system.
+
+  _ How do I deploy updates to a topology?
+    * Swapping.  Swap management is planned but not yet written:
+      https://github.com/nathanmarz/storm/wiki/Running-topologies-on-a-production-cluster
+      https://groups.google.com/forum/?fromgroups=#!searchin/storm-user/change$20topology/storm-user/lDv0yaTJLLU/uhI3GAM_IywJ
+  _ How do I buffer incoming data so it is not lost while redeploying?
+    * Use something like Kafka to buffer inbound data sources
+  _ How do I change parallelism on the fly?
+    * Rebalance command 
+        You can change the parallelism of a component on the fly using the rebalance command.
+        You can only adjust the parallelism up to the number of tasks.
+        Read the "Executors" section of the 0.8.0 release announcment:
+        http://groups.google.com/group/storm-user/browse_thread/thread/f1a75d6909b7393e
+
+
+Project
+  CF LOGS -> trawler -> pubsub -----> pubsubspout<name, sentence> # inject batch work into realtime with a feeder
+                                            |
+  CF -> tinder-gem spout <name, sentence>   |                     # inject realtime source
+           |                                |
+           V                                V
+           +--------------------------->.<--+
+                                        |
+                                        V
+                                        |
+                                        +----> sentence-to-pairs <name,word1,word2>
+                                        |        |
+                                        |        +----> username markov recorder ->[stores into redis]
+                                        |        |
+                                        |        +----> global markov recorder --->[stores into redis]
+                                        |
+                                        +----> image/text ratio --->[stores into redis]
+
+  Hubot --> markov generator <markov sentence for user>
+   ^|
+   ||
+   |V
+  REDIS
+
+
+  http://charlesleifer.com/blog/building-markov-chain-irc-bot-python-and-redis/
