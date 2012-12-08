@@ -1,6 +1,51 @@
+TODO
+_ finish outline
+_ get redstorm clust running locally
+_ get storm-ui workng on redtsorm cluster
+
 == Talk organization
 
 25min + 5min questions
+
+talk goals:
+  introduce concept of realtime processing, compare to batch processing
+  motivation: problem statement, naive/diy solutions
+
+  introduce basics of Storm (parts, semantics, deployment)
+  > http://www.quora.com/How-does-BackType-Twitter-Storm-compare-to-Yahoos-S4-and-IBMs-InfoSphere-Streams
+    """ Storm supports fault tolerance (through master node Nimbus),
+    """ guaranteed message processing (though ACKs)
+    """ as well as generalized streams which takes any kind of object and primitive (using thrift).
+
+    three use cases: stream processing, continuous computation, and DRPC.  we'll focus on stream processing
+    parts: logical: spouts, bolts, tuples, topologies, groupings
+           implementation: thrift, zookeeper, 0mq, clojure
+      _ what is the relationship between thrift, serialization, and (especially) RPC?
+    semantics: reliability, at-least-once, transactional and exactly-once
+    deployment: logical: tasks, parallelism
+                physical: workers, nimbus+supervisors
+    19:05 - 19:11 to read interesting parts of Concepts.md
+
+  illustrate RedStorm usage
+  illustrate deploying a RedStorm topology, ideally on a visible twitter firehose query (@redstormtest)
+    ec2: storm-deploy on jclouds (?), pallet (fog?), crates (chef-alike)
+  discuss use-cases
+  discuss future development of Storm
+  discuss alternatives
+
+talk goals, from audience perspective:
+  I understand when I might use storm
+  I know where to go to read more
+  I am aware of the pros/cons of using RedStorm
+  I am aware of other integration approaches (Using-non-JVM-languages-with-Storm)
+  I know what other tools might serve as alternatives
+
+audience member: why I'm glad this was a talk, rather than a blog post:
+  I had some guarantee of utility in a time-boxed format
+  I could talk to other people after the talk about this topic
+  I could ask questions about my particular use-case
+  I could ask questions about the example code
+  I could see pieces coming together 
 
 possible topics
   wiki/Rationale.md
@@ -11,17 +56,124 @@ possible topics
     good documentation
     smart, thoughtful developer and userbase
   batch and streaming approaches
-  alternative tools
-  complementary tools (stream + batch = lambda)
+  alternative tools (esper? s4? others?)
+  complementary tools (kestrel, kafka, mesos)
   concepts: streams of tuples, spouts, bolts
   semantics: incremental, idempotent, at-least-once, exactly-once
   parts: Nimbus, Supervisor (node), Zookeeper
-  storm's integration approaches (JVM language-binding, thrift, shell)
+  storm's integration approaches (JVM language-binding, thrift for topos, shell for spout/bolt components)
   what is redstorm
     let you describe spouts, bolts, and topologies in jruby
-    without this, you could still describe the topo in Java + pure ruby shell bolts
-    _ does a thrift ruby binding exist?  what would this provide (topo and spout/bolt, or only one?)?
+    without this you could submit a topo via Thrift API to Nimbus, and use shelling for ruby spouts/bolts
+     ../storm/wiki/Using-non-JVM-languages-with-Storm.md
   showing it live
+  deploying to live ec2
+  future concepts in storm (uery lang, Trident, swapping, abstraction over batch and realtime)
+
+== ete outline
+
+before storm, stream processing with queues + workers
+but scaling and fault-tolerance are painful and/or tedious
+design goals of storm:
+  guaranteed data processing
+  horizontal scalability
+  fault-tolerance
+  higher-level abstraction over message passing
+  easy to use
+  remove intermediate queues/message brokers
+    they are complex moving parts
+    they are slower than direct worker:worker communication
+
+use cases
+  stream processing
+    inbound stream, do some processing, maybe update your databases, then forget about the messages
+  distributed RPC
+    compute some intense function on a cluster, on-the-fly
+  continuous computation
+    some function which you want to continuously know the results to
+    e.g. compute trending topics off the twitter firehose
+    rolling average, rolling 
+
+physical setup
+  3 sets of nodes
+  nimbus node: master node, similar to hadoop jobtracker
+    upload computations here
+    launches and coordinates workers, &
+      moves them around when worker nodes fail
+    (not HA yet, but nimbus failure doesn't affect workers, so low-pri.  HA is on roadmap.)
+  zookeeper nodes:
+    cluster coordination
+  supervisor nodes:
+    talk to nimbus via ZK to decide what to run on the machine
+    start/stop worker processes as dictated by nimbus
+
+starting a topology:
+  storm jar mycode.jar twitter.storm.MyTopology demo
+
+stopping:
+  storm kill demo
+
+parts:
+  streams
+    core abstraction of storm
+    unbounded sequences of tuples
+    tuples are named list of values
+    dynamically typed, use any type by providing serializer
+  spouts
+    sources of streams
+    e.g. read from a kestrel/kafka queue
+         connect to a streaming API
+  bolts
+    process any # input streams
+    produce any # output streams
+    where computation happens
+      functions, filters, aggregations, streaming joins, talk to DBs...
+  topologies
+    network of spouts and bolts, connected by streams
+  tasks
+    spouts and bolts are inherently parallel
+    logical view of a topology @ runtime
+
+  worker nodes
+    physical view of topology @ runtime
+    has any # of worker processes (JVMs) running
+      each worker process has any # of tasks
+
+  workers communicate directly with one another by passing messages
+
+  stream grouping
+    since spouts and bolts are parallel, when a tuple is emitted on a stream, which tasks does that tuple go to?
+
+    decides how to partition the stream of messages
+
+    shuffle grouping: pick a random task, evenly distribute
+    fields grouping: mod hashing on a subset of tuple fields (aim for consistent recipient)
+    all grouping: send to all tasks
+    global grouping: pick task with lowest id (all tuples go to same task)
+
+    looking at a topology, each edge is annotated with a stream grouping
+
+((look at the DSL))
+  look at streaming word count
+  discuss each portion, and what it does and why
+
+how drpc works
+  ...
+
+how messages are guaranteed
+  tuple tree
+    rooted as a spout emits a single tuple
+    as bolts emit new tuples, they are anchored to the input tuple
+  ack
+    after a bolt finishes, it acks its input tuple
+    after a whole tree is acked, the root tuple is considered processed
+  this provides at-least-once semantics
+  a topology specifies a timeout for retry
+  _ who receives acks and decides to replay?  is it nimbus?  some quorum agreement amongst workers? via ZK?
+
+exactly-once semantics
+  transactional topologies
+
 
 == The Intro
 
@@ -72,6 +224,8 @@ Other CEPs (S4, Flume) (Complex Event Processing)
   Big List
     http://blog.sematext.com/2011/09/26/event-stream-processor-matrix/
 
+  http://www.quora.com/How-does-BackType-Twitter-Storm-compare-to-Yahoos-S4-and-IBMs-InfoSphere-Streams
+
   http://www.quora.com/What-would-you-choose-between-Flume-Yahoo-S4-and-Backtype-Twitter-Storm-and-why
     http://incubator.apache.org/s4/
     https://groups.google.com/forum/#!topic/s4-project/aRr-_RiB4Zc%5B1-25%5D
@@ -109,7 +263,7 @@ Contrast to batch/hadoop:
   great. However, in many cases, a stream processing model can allow you to get
   at your answers in a much faster, and cheaper way. It's not an either-or,
   rather, I feel like stream processing is just an under-explored area in
-  general. In fact, you're probably best of using both systems in the right
+  general. In fact, you're probably best off using both systems in the right
   contexts.
   """
 
@@ -178,6 +332,8 @@ What about...
     http://esper.codehaus.org/
     http://www.igvita.com/2011/05/27/streamsql-event-processing-with-esper/
     http://www.infoq.com/news/Esper--ESP-CEP
+    Esper is good, high-level abstractions, but currently not horizontally scalable
+      http://stackoverflow.com/questions/9164785/how-to-scale-out-with-esper
 
 CEP
   http://en.wikipedia.org/wiki/Complex_event_processing
@@ -268,6 +424,7 @@ Integrations
   RDMBS dumper bolt
   Redis PubSub
   Apache Kafka (distributed pubsub)
+    _ (what is meant here by distributed pubsub, kafka's a queue right?)
   SQS, Cassandra, MongoDB, HBase...
 
 Deployment

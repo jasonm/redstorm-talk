@@ -1,0 +1,57 @@
+
+thanks
+
+...............................
+...............................
+...............................
+
+* introduce basics of Storm (parts, semantics, deployment)
+  > http://www.quora.com/How-does-BackType-Twitter-Storm-compare-to-Yahoos-S4-and-IBMs-InfoSphere-Streams
+    """ Storm supports fault tolerance (through master node Nimbus),
+    """ guaranteed message processing (though ACKs)
+    """ as well as generalized streams which takes any kind of object and primitive (using thrift).
+  
+    three use cases: stream processing, continuous computation, and DRPC.  we'll focus on stream processing
+    parts: logical: spouts, bolts, tuples, topologies, groupings
+           implementation: thrift, zookeeper, 0mq, clojure
+      _ what is the relationship between thrift, serialization, and (especially) RPC?
+    semantics: reliability, at-least-once, transactional and exactly-once
+    deployment: logical: tasks, parallelism
+                physical: workers, nimbus+supervisors
+    19:05 - 19:11 to read interesting parts of Concepts.md
+
+* illustrate deploying a RedStorm topology, ideally on a visible twitter firehose query (@redstormtest)
+    ec2: storm-deploy on jclouds (?), pallet (fog?), crates (chef-alike)
+* discuss use-cases
+* discuss future development of Storm
+* discuss alternatives
+
+usage
+  starting a topology:
+    storm jar mycode.jar twitter.storm.MyTopology demo
+
+  stopping:
+    storm kill demo
+
+  ((look at the DSL))
+    look at streaming word count
+    discuss each portion, and what it does and why
+
+how drpc works
+  ...
+
+how messages are guaranteed
+  tuple tree
+    rooted as a spout emits a single tuple
+    as bolts emit new tuples, they are anchored to the input tuple
+  ack
+    after a bolt finishes, it acks its input tuple
+    after a whole tree is acked, the root tuple is considered processed
+  this provides at-least-once semantics
+  a topology specifies a timeout for retry
+  _ who receives acks and decides to replay?  is it nimbus?  some quorum agreement amongst workers? via ZK?
+
+exactly-once semantics
+  transactional topologies
+  requires a transactional spout which can guarantee order and replay messages until ack'd
+
