@@ -1341,7 +1341,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              1/19
+              1/28
             </aside>
           </footer>
         </div>
@@ -1370,7 +1370,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              2/19
+              2/28
             </aside>
           </footer>
         </div>
@@ -1384,9 +1384,14 @@ body.presenter_view div#current_presenter_notes section {
             <header><h1>Batch vs Streaming</h1></header>
             
             
-            <section><ul>
+            <section><p>Design considerations</p>
+<ul>
 <li>Data retention</li>
-<li>Latency and data scope</li>
+<li>Time scope of queries<ul>
+<li>TODO how to better phrase this ^</li>
+</ul>
+</li>
+<li>Value of low latency</li>
 </ul>
 </section>
             
@@ -1417,41 +1422,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              3/19
-            </aside>
-          </footer>
-        </div>
-      </div>
-      
-      <!-- slide source: slides/slides.markdown -->
-      <div class="slide-wrapper">
-        <div class="slide">
-          <div class="inner">
-            
-            <header><h1>Complex Event Processing (CEP) or Event Stream Processing (ESP) systems:</h1></header>
-            
-            
-            <section><ul>
-<li>Store queries instead of data</li>
-<li>Process each event in real-time</li>
-<li>Emit results when some query criteria is met</li>
-</ul></section>
-            
-          </div>
-          <div class="presenter_notes">
-            <header><h1>Presenter Notes</h1></header>
-            <section>
-            
-            </section>
-          </div>
-          <footer>
-            
-            <aside class="source">
-              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
-            </aside>
-            
-            <aside class="page_number">
-              4/19
+              3/28
             </aside>
           </footer>
         </div>
@@ -1464,6 +1435,9 @@ body.presenter_view div#current_presenter_notes section {
             
             <header><h1>Have you ever...?</h1></header>
             
+            
+            <section><p>TODO queue+worker diagram</p>
+</section>
             
           </div>
           <div class="presenter_notes">
@@ -1486,7 +1460,48 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              5/19
+              4/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Complex Event Processing (CEP)</h1></header>
+            
+            
+            <section><p><em>or "Event Stream Processing" (ESP)</em></p>
+<ul>
+<li>Store queries instead of data</li>
+<li>Process each event in real-time</li>
+<li>Emit results when some query criteria is met</li>
+</ul>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <ul>
+<li>Complex Event Processing (CEP)</li>
+<li>Event Stream Processing (ESP)</li>
+</ul>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              5/28
             </aside>
           </footer>
         </div>
@@ -1529,7 +1544,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              6/19
+              6/28
             </aside>
           </footer>
         </div>
@@ -1544,10 +1559,9 @@ body.presenter_view div#current_presenter_notes section {
             
             
             <section><ul>
-<li>this gives some concrete use cases to hold onto while I talk about the parts</li>
-<li>twitter trending topics (tweet stream -&gt; tag extractor -&gt; running counts)</li>
-<li>web crawler (URL spout -&gt; fetch -&gt; resolve -&gt; database)</li>
-<li>twitter analytics (clicks -&gt; URL resolution -&gt; bot filtering -&gt; hadoop, cassandra, continuous computations for UA+referrer combos for bot filtering)</li>
+<li>Web crawler</li>
+<li>Web analytics</li>
+<li>Twitter trending topics</li>
 </ul>
 </section>
             
@@ -1557,7 +1571,12 @@ body.presenter_view div#current_presenter_notes section {
             <section>
             
               <ul>
-<li>Have something concrete in mind while I discuss the parts of Storm</li>
+<li>So you have something concrete in mind while I discuss the parts of Storm<ul>
+<li>crawler (URL spout -&gt; fetch -&gt; resolve -&gt; database)</li>
+<li>analytics (clicks -&gt; URL resolution -&gt; bot filtering -&gt; hadoop, cassandra)</li>
+<li>trending topics (tweet stream -&gt; tag extractor -&gt; running counts)</li>
+</ul>
+</li>
 </ul>
             
             </section>
@@ -1569,7 +1588,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              7/19
+              7/28
             </aside>
           </footer>
         </div>
@@ -1583,37 +1602,17 @@ body.presenter_view div#current_presenter_notes section {
             <header><h1>Storm primitives</h1></header>
             
             
-            <section><p>TODO: make diagram slides for these; cutpaste first and then replace?</p>
-<ul>
+            <section><ul>
 <li>Streams</li>
 <li>Spouts</li>
 <li>Bolts</li>
 <li>Topologies</li>
-</ul>
-</section>
+</ul></section>
             
           </div>
           <div class="presenter_notes">
             <header><h1>Presenter Notes</h1></header>
             <section>
-            
-              <p>logical parts:
-  streams
-    core abstraction of storm
-    unbounded sequences of tuples
-    tuples are named list of values
-    dynamically typed, use any type by providing serializer
-  spouts
-    sources of streams
-    e.g. read from a kestrel/kafka queue
-         connect to a streaming API
-  bolts
-    process any # input streams
-    produce any # output streams
-    where computation happens
-      functions, filters, aggregations, streaming joins, talk to DBs...
-  topologies
-    network of spouts and bolts, connected by streams</p>
             
             </section>
           </div>
@@ -1624,7 +1623,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              8/19
+              8/28
             </aside>
           </footer>
         </div>
@@ -1635,21 +1634,158 @@ body.presenter_view div#current_presenter_notes section {
         <div class="slide">
           <div class="inner">
             
-            <header><h1>RedStorm</h1></header>
+            <header><h1>Streams</h1></header>
+            
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <p>streams
+    core abstraction of storm
+    unbounded sequences of tuples
+    tuples are named list of values
+    dynamically typed, use any type by providing serializer</p>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              9/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Spouts</h1></header>
+            
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <p>spouts
+    sources of streams
+    e.g. read from a kestrel/kafka queue
+         connect to a streaming API</p>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              10/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Bolts</h1></header>
+            
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <p>bolts
+    process any # input streams
+    produce any # output streams
+    where computation happens
+      functions, filters, aggregations, streaming joins, talk to DBs...</p>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              11/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Topologies</h1></header>
+            
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <ul>
+<li>network of spouts and bolts, connected by streams</li>
+<li>describe parallelism and field groupings</li>
+</ul>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              12/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Physical layout</h1></header>
             
             
             <section><ul>
-<li>Storm is Java and Clojure</li>
-<li>RedStorm is JRuby</li>
+<li>Tasks</li>
+<li>Workers</li>
+<li>Parallelism</li>
+<li>Stream groupings</li>
 </ul>
-<p>introduce RedStorm
-  storm is written for the JVM (mix of clojure and java) with APIs for Java and Clojure
-  there are several ways to integrate across languages (namely: JVM-native, thrift for topos, json-over-stdio shelling for spouts/bolts)
-  show an example
-    * word_count_topology
-  discuss how the code is setting up the topology
-  run it locally to see what it looks like</p>
-<p>physical parts:
+<p>TODO topology image?  tasks image? workers image?</p>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <p>physical parts:
   tasks
     spouts and bolts are inherently parallel
     logical view of a topology @ runtime
@@ -1665,7 +1801,106 @@ body.presenter_view div#current_presenter_notes section {
     * fields grouping: mod hashing on a subset of tuple fields (aim for consistent recipient)
     * all grouping: send to all tasks
     * global grouping: pick task with lowest id (all tuples go to same task)
-    looking at a topology, each edge is annotated with a stream grouping</p></section>
+    looking at a topology, each edge is annotated with a stream grouping</p>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              13/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide has_code">
+          <div class="inner">
+            
+            <header><h1>RedStorm</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">WordCountTopology</span> <span class="o">&lt;</span> <span class="no">SimpleTopology</span>
+<span class="lineno"> 2</span>   <span class="n">spout</span> <span class="no">RandomSentenceSpout</span><span class="p">,</span> <span class="ss">:parallelism</span> <span class="o">=&gt;</span> <span class="mi">5</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span>   <span class="n">bolt</span> <span class="no">SplitSentenceBolt</span><span class="p">,</span> <span class="ss">:parallelism</span> <span class="o">=&gt;</span> <span class="mi">8</span> <span class="k">do</span>
+<span class="lineno"> 5</span>     <span class="n">source</span> <span class="no">RandomSentenceSpout</span><span class="p">,</span> <span class="ss">:shuffle</span>
+<span class="lineno"> 6</span>   <span class="k">end</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span>   <span class="n">bolt</span> <span class="no">WordCountBolt</span><span class="p">,</span> <span class="ss">:parallelism</span> <span class="o">=&gt;</span> <span class="mi">12</span> <span class="k">do</span>
+<span class="lineno"> 9</span>     <span class="n">source</span> <span class="no">SplitSentenceBolt</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;word&quot;</span><span class="o">]</span>
+<span class="lineno">10</span>   <span class="k">end</span>
+<span class="lineno">11</span> <span class="k">end</span>
+</pre></div>
+
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <ul>
+<li>Write topologies and components in JRuby</li>
+<li>Storm is Java and Clojure</li>
+<li>RedStorm is JRuby</li>
+</ul>
+<p>introduce RedStorm
+  storm is written for the JVM (mix of clojure and java) with APIs for Java and Clojure
+  there are several ways to integrate across languages (namely: JVM-native, thrift for topos, json-over-stdio shelling for spouts/bolts)
+  show an example
+    * word_count_topology
+  discuss how the code is setting up the topology
+  run it locally to see what it looks like</p>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              14/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide has_code">
+          <div class="inner">
+            
+            <header><h1>RedStorm</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">RandomSentenceSpout</span> <span class="o">&lt;</span> <span class="no">RedStorm</span><span class="o">::</span><span class="no">SimpleSpout</span>
+<span class="lineno"> 2</span>   <span class="n">output_fields</span> <span class="ss">:word</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span>   <span class="n">on_init</span> <span class="k">do</span>
+<span class="lineno"> 5</span>     <span class="vi">@sentences</span> <span class="o">=</span> <span class="o">[</span>
+<span class="lineno"> 6</span>       <span class="s2">&quot;the cow jumped over the moon&quot;</span><span class="p">,</span>
+<span class="lineno"> 7</span>       <span class="s2">&quot;an apple a day keeps the doctor away&quot;</span><span class="p">,</span>
+<span class="lineno"> 8</span>       <span class="s2">&quot;four score and seven years ago&quot;</span><span class="p">,</span>
+<span class="lineno"> 9</span>       <span class="s2">&quot;snow white and the seven dwarfs&quot;</span><span class="p">,</span>
+<span class="lineno">10</span>       <span class="s2">&quot;i am at two with nature&quot;</span>
+<span class="lineno">11</span>     <span class="o">]</span>
+<span class="lineno">12</span>   <span class="k">end</span>
+<span class="lineno">13</span> 
+<span class="lineno">14</span>   <span class="n">on_send</span> <span class="k">do</span>
+<span class="lineno">15</span>     <span class="vi">@sentences</span><span class="o">[</span><span class="nb">rand</span><span class="p">(</span><span class="vi">@sentences</span><span class="o">.</span><span class="n">length</span><span class="p">)</span><span class="o">]</span>
+<span class="lineno">16</span>   <span class="k">end</span>
+<span class="lineno">17</span> <span class="k">end</span>
+</pre></div>
+</section>
             
           </div>
           <div class="presenter_notes">
@@ -1681,7 +1916,91 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              9/19
+              15/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide has_code">
+          <div class="inner">
+            
+            <header><h1>RedStorm</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="lineno">1</span> <span class="k">class</span> <span class="nc">SplitSentenceBolt</span> <span class="o">&lt;</span> <span class="no">RedStorm</span><span class="o">::</span><span class="no">SimpleBolt</span>
+<span class="lineno">2</span>   <span class="n">output_fields</span> <span class="ss">:word</span>
+<span class="lineno">3</span> 
+<span class="lineno">4</span>   <span class="n">on_receive</span> <span class="k">do</span> <span class="o">|</span><span class="n">tuple</span><span class="o">|</span>
+<span class="lineno">5</span>     <span class="n">sentence</span> <span class="o">=</span> <span class="n">tuple</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="lineno">6</span>     <span class="n">sentence</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">w</span><span class="o">|</span> <span class="o">[</span><span class="n">w</span><span class="o">]</span> <span class="p">}</span>
+<span class="lineno">7</span>   <span class="k">end</span>
+<span class="lineno">8</span> <span class="k">end</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              16/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide has_code">
+          <div class="inner">
+            
+            <header><h1>RedStorm</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">WordCountBolt</span> <span class="o">&lt;</span> <span class="no">RedStorm</span><span class="o">::</span><span class="no">SimpleBolt</span>
+<span class="lineno"> 2</span>   <span class="n">output_fields</span> <span class="ss">:word</span><span class="p">,</span> <span class="ss">:count</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span>   <span class="n">on_init</span> <span class="k">do</span>
+<span class="lineno"> 5</span>     <span class="vi">@counts</span> <span class="o">=</span> <span class="no">Hash</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="lineno"> 6</span>   <span class="k">end</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span>   <span class="n">on_receive</span> <span class="k">do</span> <span class="o">|</span><span class="n">tuple</span><span class="o">|</span>
+<span class="lineno"> 9</span>     <span class="n">word</span> <span class="o">=</span> <span class="n">tuple</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="lineno">10</span>     <span class="vi">@counts</span><span class="o">[</span><span class="n">word</span><span class="o">]</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="lineno">11</span> 
+<span class="lineno">12</span>     <span class="o">[</span><span class="n">word</span><span class="p">,</span> <span class="vi">@counts</span><span class="o">[</span><span class="n">word</span><span class="o">]]</span>
+<span class="lineno">13</span>   <span class="k">end</span>
+<span class="lineno">14</span> <span class="k">end</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              17/28
             </aside>
           </footer>
         </div>
@@ -1740,7 +2059,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              10/19
+              18/28
             </aside>
           </footer>
         </div>
@@ -1753,6 +2072,9 @@ body.presenter_view div#current_presenter_notes section {
             
             <header><h1>How processing is guaranteed</h1></header>
             
+            
+            <section><p>TODO picture of tuple tree</p>
+</section>
             
           </div>
           <div class="presenter_notes">
@@ -1784,7 +2106,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              11/19
+              19/28
             </aside>
           </footer>
         </div>
@@ -1822,7 +2144,7 @@ body.presenter_view div#current_presenter_notes section {
             </aside>
             
             <aside class="page_number">
-              12/19
+              20/28
             </aside>
           </footer>
         </div>
@@ -1830,20 +2152,37 @@ body.presenter_view div#current_presenter_notes section {
       
       <!-- slide source: slides/slides.markdown -->
       <div class="slide-wrapper">
-        <div class="slide">
+        <div class="slide has_code">
           <div class="inner">
             
             <header><h1>storm-deploy</h1></header>
             
+            
+            <section><div class="highlight"><pre><span class="lineno"> 1</span> <span class="c1"># /path/to/storm-deploy/conf/clusters.yaml</span>
+<span class="lineno"> 2</span> 
+<span class="lineno"> 3</span> <span class="l-Scalar-Plain">nimbus.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>      <span class="c1"># 64-bit ubuntu</span>
+<span class="lineno"> 4</span> <span class="l-Scalar-Plain">nimbus.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;m1.large&quot;</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span> <span class="l-Scalar-Plain">supervisor.count</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">2</span>
+<span class="lineno"> 7</span> <span class="l-Scalar-Plain">supervisor.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>  <span class="c1"># 64-bit ubuntu</span>
+<span class="lineno"> 8</span> <span class="l-Scalar-Plain">supervisor.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;c1.xlarge&quot;</span>
+<span class="lineno"> 9</span> <span class="c1">#supervisor.spot.price: 1.60</span>
+<span class="lineno">10</span> 
+<span class="lineno">11</span> <span class="l-Scalar-Plain">zookeeper.count</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">1</span>
+<span class="lineno">12</span> <span class="l-Scalar-Plain">zookeeper.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>   <span class="c1"># 64-bit ubuntu</span>
+<span class="lineno">13</span> <span class="l-Scalar-Plain">zookeeper.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;m1.large&quot;</span>
+</pre></div>
+
+</section>
             
           </div>
           <div class="presenter_notes">
             <header><h1>Presenter Notes</h1></header>
             <section>
             
-              <p>storm-deploy
-  1-click deploy tool for deploying clusters on AWS
-show off running on ec2</p>
+              <p>1-click deploy tool for deploying clusters on AWS
+show off running on ec2
+TODO what are the commands</p>
             
             </section>
           </div>
@@ -1854,7 +2193,55 @@ show off running on ec2</p>
             </aside>
             
             <aside class="page_number">
-              13/19
+              21/28
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide has_code">
+          <div class="inner">
+            
+            <header><h1>storm-deploy</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="lineno"> 1</span> <span class="c1">; ~/.pallet/config.clj</span>
+<span class="lineno"> 2</span> 
+<span class="lineno"> 3</span> <span class="p">(</span><span class="nf">defpallet</span>
+<span class="lineno"> 4</span>   <span class="ss">:services</span>
+<span class="lineno"> 5</span>   <span class="p">{</span>
+<span class="lineno"> 6</span>    <span class="ss">:default</span> <span class="p">{</span>
+<span class="lineno"> 7</span>              <span class="ss">:blobstore-provider</span> <span class="s">&quot;aws-s3&quot;</span>
+<span class="lineno"> 8</span>              <span class="ss">:provider</span> <span class="s">&quot;aws-ec2&quot;</span>
+<span class="lineno"> 9</span>              <span class="ss">:environment</span> <span class="p">{</span><span class="ss">:user</span> <span class="p">{</span><span class="ss">:username</span> <span class="s">&quot;storm&quot;</span>
+<span class="lineno">10</span>                                   <span class="ss">:private-key-path</span> <span class="s">&quot;~/.ec2/k.pem&quot;</span>
+<span class="lineno">11</span>                                   <span class="ss">:public-key-path</span> <span class="s">&quot;~/.ec2/k.pem.pub&quot;</span><span class="p">}</span>
+<span class="lineno">12</span>                            <span class="ss">:aws-user-id</span> <span class="s">&quot;1234-5678-9999&quot;</span><span class="p">}</span>
+<span class="lineno">13</span>              <span class="ss">:identity</span> <span class="s">&quot;AKIA1111111111111111&quot;</span>
+<span class="lineno">14</span>              <span class="ss">:credential</span> <span class="s">&quot;abCDEFghijklmnpOPQRSTuvWXyz1234567890123&quot;</span>
+<span class="lineno">15</span>              <span class="ss">:jclouds.regions</span> <span class="s">&quot;us-east-1&quot;</span>
+<span class="lineno">16</span>              <span class="p">}</span>
+<span class="lineno">17</span>     <span class="p">})</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              22/28
             </aside>
           </footer>
         </div>
@@ -1915,7 +2302,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              14/19
+              23/28
             </aside>
           </footer>
         </div>
@@ -1931,7 +2318,7 @@ _ what's the relationship here with state and also abstractions</li>
             
             <section><ul>
 <li><a href="https://github.com/colinsurprenant/redstorm">RedStorm</a></li>
-<li><a href="https://github.com/nathanmarz/storm">storm</a></li>
+<li><a href="http://storm-project.net/">storm</a></li>
 <li><a href="https://github.com/nathanmarz/storm-contrib">storm-contrib</a></li>
 <li><a href="https://github.com/nathanmarz/storm-deploy">storm-deploy</a></li>
 <li><a href="https://github.com/nathanmarz/storm-mesos">storm-mesos</a></li>
@@ -1952,7 +2339,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              15/19
+              24/28
             </aside>
           </footer>
         </div>
@@ -1988,7 +2375,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              16/19
+              25/28
             </aside>
           </footer>
         </div>
@@ -2033,7 +2420,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              17/19
+              26/28
             </aside>
           </footer>
         </div>
@@ -2069,7 +2456,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              18/19
+              27/28
             </aside>
           </footer>
         </div>
@@ -2104,7 +2491,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              19/19
+              28/28
             </aside>
           </footer>
         </div>
@@ -2137,13 +2524,13 @@ _ what's the relationship here with state and also abstractions</li>
       
       
       <tr id="toc-row-4">
-        <th><a href="#slide4">Complex Event Processing (CEP) or Event Stream Processing (ESP) systems:</a></th>
+        <th><a href="#slide4">Have you ever...?</a></th>
         <td><a href="#slide4">4</a></td>
       </tr>
       
       
       <tr id="toc-row-5">
-        <th><a href="#slide5">Have you ever...?</a></th>
+        <th><a href="#slide5">Complex Event Processing (CEP)</a></th>
         <td><a href="#slide5">5</a></td>
       </tr>
       
@@ -2167,68 +2554,122 @@ _ what's the relationship here with state and also abstractions</li>
       
       
       <tr id="toc-row-9">
-        <th><a href="#slide9">RedStorm</a></th>
+        <th><a href="#slide9">Streams</a></th>
         <td><a href="#slide9">9</a></td>
       </tr>
       
       
       <tr id="toc-row-10">
-        <th><a href="#slide10">Moving parts</a></th>
+        <th><a href="#slide10">Spouts</a></th>
         <td><a href="#slide10">10</a></td>
       </tr>
       
       
       <tr id="toc-row-11">
-        <th><a href="#slide11">How processing is guaranteed</a></th>
+        <th><a href="#slide11">Bolts</a></th>
         <td><a href="#slide11">11</a></td>
       </tr>
       
       
       <tr id="toc-row-12">
-        <th><a href="#slide12">Storm UI</a></th>
+        <th><a href="#slide12">Topologies</a></th>
         <td><a href="#slide12">12</a></td>
       </tr>
       
       
       <tr id="toc-row-13">
-        <th><a href="#slide13">storm-deploy</a></th>
+        <th><a href="#slide13">Physical layout</a></th>
         <td><a href="#slide13">13</a></td>
       </tr>
       
       
       <tr id="toc-row-14">
-        <th><a href="#slide14">Higher-level abstractions</a></th>
+        <th><a href="#slide14">RedStorm</a></th>
         <td><a href="#slide14">14</a></td>
       </tr>
       
       
       <tr id="toc-row-15">
-        <th><a href="#slide15">Resources: Software</a></th>
+        <th><a href="#slide15">RedStorm</a></th>
         <td><a href="#slide15">15</a></td>
       </tr>
       
       
       <tr id="toc-row-16">
-        <th><a href="#slide16">Resources: Documentation</a></th>
+        <th><a href="#slide16">RedStorm</a></th>
         <td><a href="#slide16">16</a></td>
       </tr>
       
       
       <tr id="toc-row-17">
-        <th><a href="#slide17">Resources: Talks</a></th>
+        <th><a href="#slide17">RedStorm</a></th>
         <td><a href="#slide17">17</a></td>
       </tr>
       
       
       <tr id="toc-row-18">
-        <th><a href="#slide18">Resources: Book</a></th>
+        <th><a href="#slide18">Moving parts</a></th>
         <td><a href="#slide18">18</a></td>
       </tr>
       
       
       <tr id="toc-row-19">
-        <th><a href="#slide19">Resources: Other ESP/CEP resources</a></th>
+        <th><a href="#slide19">How processing is guaranteed</a></th>
         <td><a href="#slide19">19</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-20">
+        <th><a href="#slide20">Storm UI</a></th>
+        <td><a href="#slide20">20</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-21">
+        <th><a href="#slide21">storm-deploy</a></th>
+        <td><a href="#slide21">21</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-22">
+        <th><a href="#slide22">storm-deploy</a></th>
+        <td><a href="#slide22">22</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-23">
+        <th><a href="#slide23">Higher-level abstractions</a></th>
+        <td><a href="#slide23">23</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-24">
+        <th><a href="#slide24">Resources: Software</a></th>
+        <td><a href="#slide24">24</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-25">
+        <th><a href="#slide25">Resources: Documentation</a></th>
+        <td><a href="#slide25">25</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-26">
+        <th><a href="#slide26">Resources: Talks</a></th>
+        <td><a href="#slide26">26</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-27">
+        <th><a href="#slide27">Resources: Book</a></th>
+        <td><a href="#slide27">27</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-28">
+        <th><a href="#slide28">Resources: Other ESP/CEP resources</a></th>
+        <td><a href="#slide28">28</a></td>
       </tr>
       
       

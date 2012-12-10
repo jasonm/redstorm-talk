@@ -13,8 +13,12 @@
 
 # Batch vs Streaming
 
+Design considerations
+
 * Data retention
-* Latency and data scope
+* Time scope of queries
+    * TODO how to better phrase this ^
+* Value of low latency
 
 # Presenter Notes
 
@@ -36,15 +40,9 @@
 
 ---
 
-# Complex Event Processing (CEP) or Event Stream Processing (ESP) systems:
-
-* Store queries instead of data
-* Process each event in real-time
-* Emit results when some query criteria is met
-
----
-
 # Have you ever...?
+
+TODO queue+worker diagram
 
 # Presenter Notes
 
@@ -54,6 +52,22 @@
   ...data processing guarantees (at-least-once, exactly-once semantics)
   ...horizontal scalability
   ...transactional semantics
+
+---
+
+# Complex Event Processing (CEP)
+
+_or "Event Stream Processing" (ESP)_
+
+* Store queries instead of data
+* Process each event in real-time
+* Emit results when some query criteria is met
+
+# Presenter Notes
+
+* Complex Event Processing (CEP)
+* Event Stream Processing (ESP)
+
 
 ---
 
@@ -74,60 +88,84 @@
 ---
 
 # Use cases
-  * this gives some concrete use cases to hold onto while I talk about the parts
-  * twitter trending topics (tweet stream -> tag extractor -> running counts)
-  * web crawler (URL spout -> fetch -> resolve -> database)
-  * twitter analytics (clicks -> URL resolution -> bot filtering -> hadoop, cassandra, continuous computations for UA+referrer combos for bot filtering)
+
+* Web crawler
+* Web analytics
+* Twitter trending topics
 
 # Presenter Notes
 
-* Have something concrete in mind while I discuss the parts of Storm
+* So you have something concrete in mind while I discuss the parts of Storm
+    * crawler (URL spout -> fetch -> resolve -> database)
+    * analytics (clicks -> URL resolution -> bot filtering -> hadoop, cassandra)
+    * trending topics (tweet stream -> tag extractor -> running counts)
 
 ---
 
 # Storm primitives
-
-TODO: make diagram slides for these; cutpaste first and then replace?
 
 * Streams
 * Spouts
 * Bolts
 * Topologies
 
+---
+
+# Streams
+
 # Presenter Notes
 
-logical parts:
   streams
     core abstraction of storm
     unbounded sequences of tuples
     tuples are named list of values
     dynamically typed, use any type by providing serializer
+
+---
+
+# Spouts
+
+# Presenter Notes
+
   spouts
     sources of streams
     e.g. read from a kestrel/kafka queue
          connect to a streaming API
+
+---
+
+# Bolts
+
+# Presenter Notes
+
   bolts
     process any # input streams
     produce any # output streams
     where computation happens
       functions, filters, aggregations, streaming joins, talk to DBs...
-  topologies
-    network of spouts and bolts, connected by streams
 
 ---
 
-# RedStorm
+# Topologies
 
-* Storm is Java and Clojure
-* RedStorm is JRuby
+# Presenter Notes
 
-introduce RedStorm
-  storm is written for the JVM (mix of clojure and java) with APIs for Java and Clojure
-  there are several ways to integrate across languages (namely: JVM-native, thrift for topos, json-over-stdio shelling for spouts/bolts)
-  show an example
-    * word_count_topology
-  discuss how the code is setting up the topology
-  run it locally to see what it looks like
+* network of spouts and bolts, connected by streams
+* describe parallelism and field groupings
+
+---
+
+# Physical layout
+
+* Tasks
+* Workers
+* Parallelism
+* Stream groupings
+
+TODO topology image?  tasks image? workers image?
+
+# Presenter Notes
+
 
 physical parts:
   tasks
@@ -146,6 +184,94 @@ physical parts:
     * all grouping: send to all tasks
     * global grouping: pick task with lowest id (all tuples go to same task)
     looking at a topology, each edge is annotated with a stream grouping
+---
+
+# RedStorm
+
+    !ruby
+    class WordCountTopology < SimpleTopology
+      spout RandomSentenceSpout, :parallelism => 5
+
+      bolt SplitSentenceBolt, :parallelism => 8 do
+        source RandomSentenceSpout, :shuffle
+      end
+
+      bolt WordCountBolt, :parallelism => 12 do
+        source SplitSentenceBolt, :fields => ["word"]
+      end
+    end
+
+# Presenter Notes
+
+* Write topologies and components in JRuby
+* Storm is Java and Clojure
+* RedStorm is JRuby
+
+introduce RedStorm
+  storm is written for the JVM (mix of clojure and java) with APIs for Java and Clojure
+  there are several ways to integrate across languages (namely: JVM-native, thrift for topos, json-over-stdio shelling for spouts/bolts)
+  show an example
+    * word_count_topology
+  discuss how the code is setting up the topology
+  run it locally to see what it looks like
+
+---
+
+# RedStorm
+
+    !ruby
+    class RandomSentenceSpout < RedStorm::SimpleSpout
+      output_fields :word
+
+      on_init do
+        @sentences = [
+          "the cow jumped over the moon",
+          "an apple a day keeps the doctor away",
+          "four score and seven years ago",
+          "snow white and the seven dwarfs",
+          "i am at two with nature"
+        ]
+      end
+
+      on_send do
+        @sentences[rand(@sentences.length)]
+      end
+    end
+
+---
+
+# RedStorm
+
+    !ruby
+    class SplitSentenceBolt < RedStorm::SimpleBolt
+      output_fields :word
+
+      on_receive do |tuple|
+        sentence = tuple.getString(0)
+        sentence.split(' ').map { |w| [w] }
+      end
+    end
+
+---
+
+# RedStorm
+
+    !ruby
+    class WordCountBolt < RedStorm::SimpleBolt
+      output_fields :word, :count
+
+      on_init do
+        @counts = Hash.new(0)
+      end
+
+      on_receive do |tuple|
+        word = tuple.getString(0)
+        @counts[word] += 1
+
+        [word, @counts[word]]
+      end
+    end
+
 
 ---
 
@@ -178,6 +304,8 @@ rename this
 
 # How processing is guaranteed
 
+TODO picture of tuple tree
+
 # Presenter Notes
 
 * tuple tree
@@ -209,11 +337,50 @@ TODO: show the screen
 
 # storm-deploy
 
+
+    !yaml
+    # /path/to/storm-deploy/conf/clusters.yaml
+
+    nimbus.image: "us-east-1/ami-08f40561"      # 64-bit ubuntu
+    nimbus.hardware: "m1.large"
+
+    supervisor.count: 2
+    supervisor.image: "us-east-1/ami-08f40561"  # 64-bit ubuntu
+    supervisor.hardware: "c1.xlarge"
+    #supervisor.spot.price: 1.60
+
+    zookeeper.count: 1
+    zookeeper.image: "us-east-1/ami-08f40561"   # 64-bit ubuntu
+    zookeeper.hardware: "m1.large"
+
 # Presenter Notes
 
-storm-deploy
-  1-click deploy tool for deploying clusters on AWS
+1-click deploy tool for deploying clusters on AWS
 show off running on ec2
+TODO what are the commands
+
+---
+
+# storm-deploy
+
+    !clojure
+    ; ~/.pallet/config.clj
+
+    (defpallet
+      :services
+      {
+       :default {
+                 :blobstore-provider "aws-s3"
+                 :provider "aws-ec2"
+                 :environment {:user {:username "storm"
+                                      :private-key-path "~/.ec2/k.pem"
+                                      :public-key-path "~/.ec2/k.pem.pub"}
+                               :aws-user-id "1234-5678-9999"}
+                 :identity "AKIA1111111111111111"
+                 :credential "abCDEFghijklmnpOPQRSTuvWXyz1234567890123"
+                 :jclouds.regions "us-east-1"
+                 }
+        })
 
 ---
 
@@ -248,7 +415,7 @@ show off running on ec2
 # Resources: Software
 
 * [RedStorm](https://github.com/colinsurprenant/redstorm)
-* [storm](https://github.com/nathanmarz/storm)
+* [storm](http://storm-project.net/)
 * [storm-contrib](https://github.com/nathanmarz/storm-contrib)
 * [storm-deploy](https://github.com/nathanmarz/storm-deploy)
 * [storm-mesos](https://github.com/nathanmarz/storm-mesos)
