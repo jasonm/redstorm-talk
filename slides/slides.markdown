@@ -11,24 +11,31 @@
 
 ---
 
-# Batch vs Streaming
-
-Design considerations
-
-* Data retention
-* Time scope of queries
-    * TODO how to better phrase this ^
-* Value of low latency
+# Data processing systems
 
 # Presenter Notes
 
-  Hadoop and map-reduce are great for processing data in a batch mode, but that's not always a great fit.
+Sometimes you need to process a large volume of incoming data.  Web analytics, application logging and performance analytics,
+error reporting services, financial or e-commerce information, physical sensor data, social interaction services.
 
-  Instead of storing data and then executing batch queries over it,
-  what if we persisted the query and ran the data through it?
+One popular approach is to dump the incoming data into a distributed filesystem like HDFS, run offline map-reduce
+queries over it, and place the results into a data store so your apps can read from it.
+
+---
+
+# Design considerations
+
+* Value of low latency
+* Adhoc vs known queries
+* Timeframe of queries
+* Data retention needs
+
+# Presenter Notes
+
+  Hadoop and map-reduce are great for processing data in a batch mode.
 
   If you need to store all of your data and you need to execute queries which
-  span large time-frames, or you do not know the queries up front, then Hadoop is great.
+  span large time-frames, or you don't know the queries up front, then Hadoop and map-reduce are a great fit.
 
   However, when:
 
@@ -38,11 +45,14 @@ Design considerations
 
   Then a stream processing model can allow you to get at your answers in a much faster, and cheaper way.
 
+  Instead of storing data and then executing batch queries over it,
+  what if we persisted the query and ran the data through it?
+
 ---
 
 # Have you ever...?
 
-TODO queue+worker diagram
+![workers and queues](../images/workers-queues.png)
 
 # Presenter Notes
 
@@ -72,6 +82,7 @@ _or "Event Stream Processing" (ESP)_
 ---
 
 # Design goals of storm:
+
 
 * Higher level abstraction over message passing
 * Guaranteed data processing
@@ -163,6 +174,7 @@ _or "Event Stream Processing" (ESP)_
 * Stream groupings
 
 TODO topology image?  tasks image? workers image?
+
 
 # Presenter Notes
 
