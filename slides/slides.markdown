@@ -305,6 +305,13 @@ TODO resize image or something
 
 TODO: show the screen
 
+$ storm list
+Running: java -client (...)
+0    [main] INFO  backtype.storm.thrift  - Connecting to Nimbus at 54.242.26.225:6627
+No topologies running.
+
+$ storm ui
+
 # Presenter Notes
 
   ete@45:15
@@ -336,18 +343,8 @@ TODO: show the screen
 # Presenter Notes
 
 * 1-click deploy tool for deploying clusters on AWS
-* show off running on ec2
-
----
-
-# storm-deploy
-
-    !bash
-    # start a cluster
-    $ lein run :deploy --start --name mycluster --release 0.8.1
-
-    # stop a cluster
-    $ lein run :deploy --stop --name mycluster
+* configure your cluster
+* then configure your AWS settings
 
 ---
 
@@ -374,12 +371,70 @@ TODO: show the screen
 
 ---
 
+# storm-deploy
+
+    !bash
+    # start a cluster
+    $ lein run :deploy --start --name mycluster --release 0.8.1
+
+    # stop a cluster
+    $ lein run :deploy --stop --name mycluster
+
+---
+
+# Running in production
+
+    !bash
+    $ redstorm jar examples/simple
+
+    --> Generating JAR file $PWD/target/cluster-topology.jar
+    Extracting target/dependency/topology/default/jruby-complete-1.6.8.jar
+    Building jar: $PWD/target/cluster-topology.jar
+    RedStorm generated JAR file $PWD/target/cluster-topology.jar
+
+---
+
+# Running in production
+
+    $ redstorm cluster --1.9 examples/simple/word_count_topology.rb 
+
+    Launching storm jar $PWD/target/cluster-topology.jar
+      -Djruby.compat.version=RUBY1_9
+      redstorm.TopologyLauncher
+      cluster examples/simple/word_count_topology.rb
+
+    RedStorm v0.8.1 starting topology
+      RedStorm::Examples::WordCountTopology/word_count
+      in cluster environment
+
+    INFO - Jar not uploaded to master yet. Submitting jar...
+    INFO - Uploading topology jar $PWD/target/cluster-topology.jar to assigned location:
+           /mnt/storm/nimbus/inbox/stormjar-a07fd36a-0b5e-472c-a8bb-c95898d7898f.jar
+    INFO - Successfully uploaded topology jar to assigned location:
+           /mnt/storm/nimbus/inbox/stormjar-a07fd36a-0b5e-472c-a8bb-c95898d7898f.jar
+    INFO - Submitting topology word_count in distributed mode with conf
+           {"topology.workers":20,
+            "topology.worker.childopts":"-Djruby.compat.version=RUBY1_9",
+            "topology.debug":true,"topology.max.spout.pending":1000}
+    INFO - Finished submitting topology: word_count
+
+---
+
 # Tweitgeist
 
-[https://github.com/colinsurprenant/tweitgeist](https://github.com/colinsurprenant/tweitgeist)
-[http://tweitgeist.colinsurprenant.com](http://tweitgeist.colinsurprenant.com)
+* [Live example](http://tweitgeist.colinsurprenant.com)
+* [GitHub source](https://github.com/colinsurprenant/tweitgeist)
 
 ![tweitgeist](../images/tweitgeist.png)
+
+---
+
+# Tweitgeist
+
+* [Talk: "Twitter Big Data"](http://www.slideshare.net/colinsurprenant/twitter-big-data)
+
+![tweitgeist topology](../images/tweitgeist-topology.png)
+
 
 ---
 
@@ -450,7 +505,7 @@ TODO: show the screen
     * Early access book by Nathan Marz
     * "Principles and best practices of scalable realtime data systems"
 
-![big data book](http://manning.com/marz/marz_cover150.jpg)
+![big data book](../images/marz_cover150.jpg)
 
 ---
 
