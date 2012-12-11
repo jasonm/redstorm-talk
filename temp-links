@@ -1,0 +1,18 @@
+Slides
+file://localhost/Users/jason/dev/storm-talk/index.html
+
+
+Example
+~/dev/storm-redstorm-playground/examples/simple/word_count_topology.rb
+redstorm local --1.9 examples/simple/word_count_topology.rb
+
+Boot
+lein run :deploy --start --name mycluster --release 0.8.1
+lein run :deploy --attach --name mycluster
+lein run :deploy --stop --name mycluster
+
+Storm UI
+http://107.22.123.37:8080/
+
+Ganglia
+http://107.22.123.37/ganglia/

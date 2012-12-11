@@ -1,0 +1,40 @@
+---
+
+# Running in production
+
+    !bash
+    $ redstorm jar examples/simple
+
+    --> Generating JAR file $PWD/target/cluster-topology.jar
+    Extracting target/dependency/topology/default/jruby-complete-1.6.8.jar
+    Building jar: $PWD/target/cluster-topology.jar
+    RedStorm generated JAR file $PWD/target/cluster-topology.jar
+
+---
+
+# Running in production
+
+    $ redstorm cluster --1.9 examples/simple/word_count_topology.rb 
+
+    Launching storm jar $PWD/target/cluster-topology.jar
+      -Djruby.compat.version=RUBY1_9
+      redstorm.TopologyLauncher
+      cluster examples/simple/word_count_topology.rb
+
+    RedStorm v0.8.1 starting topology
+      RedStorm::Examples::WordCountTopology/word_count
+      in cluster environment
+
+    INFO - Jar not uploaded to master yet. Submitting jar...
+    INFO - Uploading topology jar $PWD/target/cluster-topology.jar to assigned location:
+           /mnt/storm/nimbus/inbox/stormjar-a07fd36a-0b5e-472c-a8bb-c95898d7898f.jar
+    INFO - Successfully uploaded topology jar to assigned location:
+           /mnt/storm/nimbus/inbox/stormjar-a07fd36a-0b5e-472c-a8bb-c95898d7898f.jar
+    INFO - Submitting topology word_count in distributed mode with conf
+           {"topology.workers":20,
+            "topology.worker.childopts":"-Djruby.compat.version=RUBY1_9",
+            "topology.debug":true,"topology.max.spout.pending":1000}
+    INFO - Finished submitting topology: word_count
+
+---
+

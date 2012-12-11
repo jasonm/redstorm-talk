@@ -13,6 +13,7 @@
 
 * design of data processing systems
 * interesting case: 1 processing machine is not sufficient
+* use cases like web/engagement analytics, app logging and performance analytics logging, financial/ecommerce information, physical sensor data
 * could be for many reasons: high ingest volume, expensive computation, or tight latency requirements
 
 ---
@@ -63,7 +64,6 @@
 
 # Queues & workers
 
-TODO remake image
 ![workers and queues](../images/workers-queues.png)
 
 # Presenter Notes
@@ -81,63 +81,52 @@ Hands up, ever written a system made of queues+workers to process incoming data?
 
 Then you'll know there are some challenges...
 
-* data processing guarantees
-* fault tolerance
+* data processing guarantees & fault tolerance
 * queues impose latency between layers
-    * with any reliability guarantees, they are complex moving parts
-    * impose a 3rd party between worker layers, where message has to go to disk
+    * when one worker sends to another, impose a 3rd party between worker layers, where message has to go to disk
 * without another layer of abstraction, coding is tedius - spending your time thinking about where to write message to, where do I read messages from, how do I serialize messages, etc.
+* this is the kind of system that was in place in the product (Backtype) that became Twitter analytics
+
+---
+
+# Twitter analytics
+![twitter analytics](../images/twitter-analytics.png)
 
 ---
 # Storm
 ![storm on github](../images/storm-github.png)
 
----
-# Storm
-![twitter analytics](../images/twitter-analytics.png)
+# Presenter Notes
+
+* released september 2011 at StrangeLoop
+* >4,000 stars, >500 forks.  most starred Java project on github.
+* Used by: Groupon, The Weather Channel, Alibaba, Taobao (ebay-alike, Alexa #11)
 
 ---
 
-# Design goals of Storm:
+# Design goals.  Storm should:
 
-* Guaranteed data processing
-* Horizontal scalability
-* Fault tolerance
-* No intermediate message brokers
-* Easy to use
+* Guarantee data processing
+* Provide for horizontal scalability
+* Be fault tolerant
+* Be easy to use
 
 # Presenter Notes
 
-* Guaranteed data processing: When errors happen, guarantee that data flowing into your cluster will be processed at least once, or exactly once, as you choose
-* Horizontal scalability: Tweak parallelization of computations and cluster resources to match your workload
+* Guaranteed data processing: Choose whether, in the face of failure, data can be lost, or must be processed at-least once, or exactly once
+* Horizontal scalability: Distribute your processing across a cluster, tweak parallelization of computations and the allocation of cluster resources to match your workload
 * Fault tolerance: If there are any errors or when nodes fail, system should handle this gracefully and keep running
-* Remove intermediate queues/message brokers
-    but without them, how do we handle fault tolerance?
-* Easy to use: Focus on your computations, not infrastructure
-
----
-
-# Example use cases
-
-* Web crawler
-* Web analytics
-* Twitter trending topics
-
-# Presenter Notes
-
-* So you have something concrete in mind while I discuss the parts of Storm
-    * crawler (URL spout -> fetch -> resolve -> database)
-    * analytics (clicks -> URL resolution -> bot filtering -> hadoop, cassandra)
-    * trending topics (tweet stream -> tag extractor -> running counts)
-    * not going to cover this today, but the idea is to take a computation, implement it on storm, then let storm parallelize it, and invoke via storm-drpc
+* Easy to use: As the application developer, focus on writing your computation, not infrastructure like message serialization, routing, and retrying.
+* So, how is it put together?
 
 ---
 
 # Storm primitives
 
 * Streams
-* Spouts
-* Bolts
+* _Components_
+    * Spouts
+    * Bolts
 * Topologies
 
 ---
@@ -152,6 +141,7 @@ Then you'll know there are some challenges...
 * unbounded sequences of tuples
 * tuples are named list of values
 * dynamically typed, use any type by providing serializer
+* streams are how that the parts of your computation talk to one another, they are the message passing
 
 ---
 
@@ -165,6 +155,7 @@ Then you'll know there are some challenges...
 * typically:
     * read from a pubsub/kestrel/kafka queue
     * connect to a streaming API
+* emits any number of output streams
 
 ---
 
@@ -198,7 +189,8 @@ Then you'll know there are some challenges...
 
 # Presenter Notes
 
-* 4 worker nodes, 1 spout, 3 bolts.  #/tasks per.
+* nothing to do with hardware
+* 4 components, 1 spout, 3 bolts.  #/tasks per.
 
 ---
 
@@ -210,7 +202,7 @@ Then you'll know there are some challenges...
 
 * 3 worker nodes
 * multiple worker processes on each node (JVM process)
-* many tasks per process
+* tasks are threads, many tasks per thread
 
 ---
 
@@ -227,9 +219,12 @@ Then you'll know there are some challenges...
 * since spouts and bolts are parallel, when a tuple is emitted on a stream, which tasks does that tuple go to?
 * decides how to partition the stream of messages
     * shuffle grouping: pick a random task, evenly distribute
-    * fields grouping: mod hashing on a subset of tuple fields (aim for consistent recipient)
     * all grouping: send to all tasks
     * global grouping: pick task with lowest id (all tuples go to same task)
+    * fields grouping: for persistent/stateful algorithms, send similar data to the same worker process.
+      mod hashing on a subset of tuple fields
+
+* let's take a look at some code...
 
 ---
 
@@ -240,39 +235,41 @@ Then you'll know there are some challenges...
 
 # Presenter Notes
 
-* Write topologies and components in JRuby
 * Storm is written for the JVM in Java and Clojure
-* there are several ways to integrate across languages (namely: JVM-native, thrift for topos, json-over-stdio shelling for spouts/bolts)
-* RedStorm is a JRuby adapter library
+* there are several ways to integrate across languages (namely: JVM-native, thrift for topos, "multilang components" json-over-stdio shelling for spouts/bolts)
+* RedStorm lets you write topologies and components in JRuby
 
 ---
 
 # Example time!
 
----
-
-# Word count topology
-
-TODO resize image or something
-
 ![word count topology](../images/word-count-topology.png)
+
+# Presenter Notes
+
+* RandomSentenceSpout
+* SplitSentenceBolt
+* WordCountBolt
 
 ---
 
 # Data processing guarantees
 
+Tuple tree:
+
 ![tuple tree](../images/tuple-tree.png)
 
 # Presenter Notes
 
+* now that we've seen...
 * tuple tree
-    * rooted as a spout emits a single tuple
+    * rooted at the spout, with a single tuple
     * as bolts emit new tuples, they are anchored to the input tuple
 * ack
     * after a bolt finishes, it acks its input tuple
     * after a whole tree is acked, the root tuple is considered processed
 * this provides at-least-once semantics
-* a topology specifies a timeout for retry TOPOLOGY_MESSAGE_TIMEOUT_SECS default 30s
+* you can build exactly-once processing semantics on top using transactions
 ---
 
 # Cluster deployment
@@ -291,35 +288,30 @@ TODO resize image or something
 * ZooKeeper nodes:
     * separate apache project
     * cluster coordination
-    TODO improve this description from wiki
+        * store configuration, serve as distributed lock service for master election, etc.
 * Supervisor nodes:
     * talk to nimbus via ZK to decide what to run on the machine
     * start/stop worker processes as necessary, as dictated by nimbus
-* implementation: JVM (java+clojure), 0mq, zookeeper, thrift
-* deployment: storm-deploy to automate deploment and provisioning on ec2
+
+* visibility: storm-ui
 
 
 ---
 
 # Storm UI
 
-TODO: show the screen
-
-$ storm list
-Running: java -client (...)
-0    [main] INFO  backtype.storm.thrift  - Connecting to Nimbus at 54.242.26.225:6627
-No topologies running.
-
-$ storm ui
+![storm ui](../images/storm-ui.png)
 
 # Presenter Notes
 
-  ete@45:15
-  what topos are running on your cluster
-  details statistics about each cluster
-  - for every spout tuple, what's the avg latency until whole tuple tree is completed
-  - for every bolt, avg processing latency
-  - for every component, throughput
+* what topologies are running on your cluster
+* error logs
+* details statistics about each topology
+    * for every spout tuple, what's the avg latency until whole tuple tree is completed
+    * for every bolt, avg processing latency
+    * for every component, throughput
+
+* deployment: storm-deploy to automate deploment and provisioning on ec2
 
 ---
 
@@ -344,6 +336,9 @@ $ storm ui
 
 * 1-click deploy tool for deploying clusters on AWS
 * configure your cluster
+* provides nice things like
+    * spot pricing
+    * ganglia for resource usage monitoring
 * then configure your AWS settings
 
 ---
@@ -374,10 +369,13 @@ $ storm ui
 # storm-deploy
 
     !bash
-    # start a cluster
+    # start cluster
     $ lein run :deploy --start --name mycluster --release 0.8.1
 
-    # stop a cluster
+    # attach to the cluster
+    $ lein run :deploy --attach --name mycluster
+
+    # stop cluster
     $ lein run :deploy --stop --name mycluster
 
 ---
@@ -385,42 +383,28 @@ $ storm ui
 # Running in production
 
     !bash
+    # deploy your topology
     $ redstorm jar examples/simple
-
-    --> Generating JAR file $PWD/target/cluster-topology.jar
-    Extracting target/dependency/topology/default/jruby-complete-1.6.8.jar
-    Building jar: $PWD/target/cluster-topology.jar
-    RedStorm generated JAR file $PWD/target/cluster-topology.jar
-
----
-
-# Running in production
-
     $ redstorm cluster --1.9 examples/simple/word_count_topology.rb 
 
-    Launching storm jar $PWD/target/cluster-topology.jar
-      -Djruby.compat.version=RUBY1_9
-      redstorm.TopologyLauncher
-      cluster examples/simple/word_count_topology.rb
+    # monitor with storm-ui and ganglia
+    $ open http://{nimbus-ip}:8080
+    $ open http://{nimbus-ip}/ganglia
 
-    RedStorm v0.8.1 starting topology
-      RedStorm::Examples::WordCountTopology/word_count
-      in cluster environment
+    # kill topology
+    $ storm kill word_count
 
-    INFO - Jar not uploaded to master yet. Submitting jar...
-    INFO - Uploading topology jar $PWD/target/cluster-topology.jar to assigned location:
-           /mnt/storm/nimbus/inbox/stormjar-a07fd36a-0b5e-472c-a8bb-c95898d7898f.jar
-    INFO - Successfully uploaded topology jar to assigned location:
-           /mnt/storm/nimbus/inbox/stormjar-a07fd36a-0b5e-472c-a8bb-c95898d7898f.jar
-    INFO - Submitting topology word_count in distributed mode with conf
-           {"topology.workers":20,
-            "topology.worker.childopts":"-Djruby.compat.version=RUBY1_9",
-            "topology.debug":true,"topology.max.spout.pending":1000}
-    INFO - Finished submitting topology: word_count
+# Presenter Notes
+
+* jar it up, then submit the jar to the topology
+* monitor with storm-ui and ganglia
+* Specifying other dependencies for deploy (ami, system packages, jars, gems)
+    * jclouds/pallet, apache ivy, bundler
+
 
 ---
 
-# Tweitgeist
+# Bigger example: Tweitgeist
 
 * [Live example](http://tweitgeist.colinsurprenant.com)
 * [GitHub source](https://github.com/colinsurprenant/tweitgeist)
@@ -429,7 +413,7 @@ $ storm ui
 
 ---
 
-# Tweitgeist
+# Bigger example: Tweitgeist
 
 * [Talk: "Twitter Big Data"](http://www.slideshare.net/colinsurprenant/twitter-big-data)
 
@@ -438,16 +422,18 @@ $ storm ui
 
 ---
 
-# Higher-level abstractions
+# But wait, there's more...
 
+* Runtime rebalancing and swapping
 * DRPC: Ad-hoc computations
 * Trident: state, transactions, exactly-once semantics
 * Lambda architecture: blend streaming and batch modes
 
 # Presenter Notes
 
+* change parallelization and migrate topologies on the fly
 * drpc
-    * built atop storm primitives
+    * abstraction built on top of storm primitives
     * design distributed computations as topologies
     * some function you want to execute on-the-fly, across a cluster
     * drpc server acts as a spout, emits function invocations
@@ -470,6 +456,12 @@ $ storm ui
 
 ---
 
+# Resources: Getting started
+
+* [storm-starter](https://github.com/nathanmarz/storm-starter)
+* [redstorm examples](https://github.com/colinsurprenant/redstorm/tree/master/examples)
+
+---
 
 # Resources: Software
 
