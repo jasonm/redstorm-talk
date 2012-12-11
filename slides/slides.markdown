@@ -1,13 +1,9 @@
 # RedStorm
-## Distributed Realtime Computation in Ruby
+# Distributed Realtime Computation in Ruby
 # Jason Morrison
 # December 11, 2012
 
----
-
-#
-
-(This is an HTML slide deck. Press "h" for help, or use the arrow keys to navigate. Press "p" for presenter notes, where you'll find a bunch of links, especially towards the end.)
+![Storm](../images/topology.png)
 
 ---
 
@@ -15,38 +11,49 @@
 
 # Presenter Notes
 
-Sometimes you need to process a large volume of incoming data.  Web analytics, application logging and performance analytics,
-error reporting services, financial or e-commerce information, physical sensor data, social interaction services.
-
-One popular approach is to dump the incoming data into a distributed filesystem like HDFS, run offline map-reduce
-queries over it, and place the results into a data store so your apps can read from it.
+* 1 processing machine is not sufficient
 
 ---
 
 # Design considerations
 
-* Value of low latency
-* Adhoc vs known queries
-* Timeframe of queries
 * Data retention needs
+    * Adhoc vs known queries
+    * Timeframe of queries
+* Value of low latency
 
 # Presenter Notes
 
-  Hadoop and map-reduce are great for processing data in a batch mode.
+* One popular approach for large-scale data processing systems is to dump the
+  incoming data into a distributed filesystem like HDFS, run offline map-reduce
+  queries over it, and place the results into a data store so your apps can read
+  from it.
 
-  If you need to store all of your data and you need to execute queries which
-  span large time-frames, or you don't know the queries up front, then Hadoop and map-reduce are a great fit.
+* If you need to store all of your data and you need to execute queries which
+  span large time-frames, or you don't know the queries up front, then batch
+  mode is a great fit.
 
   However, when:
 
   * low latency is valuable
-  * you know queries/functions ahead of time
-  * query domain is a subset (time-localized) of all data
+  * you know queries ahead of time
+  * query domain is a subset of all data across a relatively small time window
 
-  Then a stream processing model can allow you to get at your answers in a much faster, and cheaper way.
+  then a stream processing model can allow you to get at your answers in a much
+  faster, and cheaper way.
 
-  Instead of storing data and then executing batch queries over it,
-  what if we persisted the query and ran the data through it?
+* Instead of storing data and then executing batch queries over it, what if we
+  persist the query and run the data through it?
+
+---
+
+# Complex event processing (CEP)
+
+_or "Event stream processing" (ESP)_
+
+* Store queries instead of data
+* Process each event in real-time
+* Emit results when some query criteria is met
 
 ---
 
@@ -65,40 +72,26 @@ queries over it, and place the results into a data store so your apps can read f
 
 ---
 
-# Complex Event Processing (CEP)
+# Design goals of Storm:
 
-_or "Event Stream Processing" (ESP)_
-
-* Store queries instead of data
-* Process each event in real-time
-* Emit results when some query criteria is met
-
-# Presenter Notes
-
-* Complex Event Processing (CEP)
-* Event Stream Processing (ESP)
-
-
----
-
-# Design goals of storm:
-
-
-* Higher level abstraction over message passing
-* Guaranteed data processing
-* Horizontal scalability
+* No intermediate message brokers
 * Fault tolerance
+* Horizontal scalability
 * Easy to use
 
 # Presenter Notes
 
+* Fault tolerance: When errors happen, guarantee that data flowing into your cluster will be processed at least once, or exactly once, as you choose
 * Remove intermediate queues/message brokers
     they are complex moving parts
     they are slower than direct worker:worker communication
+    but without them, how do we handle fault tolerance?
+* Horizontal scalability: Tweak parallelization of computations and cluster resources to match your workload
+* Easy to use: Focus on your computations, not infrastructure
 
 ---
 
-# Use cases
+# Example use cases
 
 * Web crawler
 * Web analytics
@@ -110,6 +103,7 @@ _or "Event Stream Processing" (ESP)_
     * crawler (URL spout -> fetch -> resolve -> database)
     * analytics (clicks -> URL resolution -> bot filtering -> hadoop, cassandra)
     * trending topics (tweet stream -> tag extractor -> running counts)
+    * not going to cover this today, but the idea is to take a computation, implement it on storm, then let storm parallelize it, and invoke via storm-drpc
 
 ---
 
@@ -122,42 +116,48 @@ _or "Event Stream Processing" (ESP)_
 
 ---
 
-# Streams
+# Stream
+
+![streams](../images/streams.png)
 
 # Presenter Notes
 
-  streams
-    core abstraction of storm
-    unbounded sequences of tuples
-    tuples are named list of values
-    dynamically typed, use any type by providing serializer
+* core abstraction of storm
+* unbounded sequences of tuples
+* tuples are named list of values
+* dynamically typed, use any type by providing serializer
 
 ---
 
-# Spouts
+# Spout
+
+![spouts](../images/spouts.png)
 
 # Presenter Notes
 
-  spouts
-    sources of streams
-    e.g. read from a kestrel/kafka queue
-         connect to a streaming API
+* sources of streams
+* typically:
+    * read from a pubsub/kestrel/kafka queue
+    * connect to a streaming API
 
 ---
 
-# Bolts
+# Bolt
+
+![bolts](../images/bolts.png)
 
 # Presenter Notes
 
-  bolts
-    process any # input streams
-    produce any # output streams
-    where computation happens
-      functions, filters, aggregations, streaming joins, talk to DBs...
+* process any # input streams
+* produce any # output streams
+* where computation happens
+    * functions, filters, aggregations, streaming joins, talk to DBs...
 
 ---
 
-# Topologies
+# Topology
+
+![topology](../images/topology.png)
 
 # Presenter Notes
 
@@ -166,149 +166,93 @@ _or "Event Stream Processing" (ESP)_
 
 ---
 
-# Physical layout
+# Parallelism: _logical view_
 
-* Tasks
-* Workers
-* Parallelism
-* Stream groupings
-
-TODO topology image?  tasks image? workers image?
-
+![parallelism](../images/parallelism.png)
 
 # Presenter Notes
 
+* 4 worker nodes, 1 spout, 3 bolts.  #/tasks per.
 
-physical parts:
-  tasks
-    spouts and bolts are inherently parallel
-    logical view of a topology @ runtime
-  worker nodes
-    physical view of topology @ runtime
-    has any # of worker processes (JVMs) running
-      each worker process has any # of tasks
-  workers communicate directly with one another by passing messages
-  stream grouping
-    since spouts and bolts are parallel, when a tuple is emitted on a stream, which tasks does that tuple go to?
-    decides how to partition the stream of messages
+---
+
+# Parallelism: _physical view_
+
+![workers](../images/workers.png)
+
+# Presenter Notes
+
+* 3 worker nodes
+* multiple worker processes on each node (JVM process)
+* many tasks per process
+
+---
+
+# Stream grouping
+
+![streamgrouping](../images/streamgrouping.png)
+
+* Shuffle grouping
+* Fields grouping
+* All grouping
+
+# Presenter Notes
+
+* since spouts and bolts are parallel, when a tuple is emitted on a stream, which tasks does that tuple go to?
+* decides how to partition the stream of messages
     * shuffle grouping: pick a random task, evenly distribute
     * fields grouping: mod hashing on a subset of tuple fields (aim for consistent recipient)
     * all grouping: send to all tasks
     * global grouping: pick task with lowest id (all tuples go to same task)
-    looking at a topology, each edge is annotated with a stream grouping
+
 ---
 
 # RedStorm
 
-    !ruby
-    class WordCountTopology < SimpleTopology
-      spout RandomSentenceSpout, :parallelism => 5
+![RedStorm on github](../images/redstorm-github.png)
 
-      bolt SplitSentenceBolt, :parallelism => 8 do
-        source RandomSentenceSpout, :shuffle
-      end
-
-      bolt WordCountBolt, :parallelism => 12 do
-        source SplitSentenceBolt, :fields => ["word"]
-      end
-    end
 
 # Presenter Notes
 
 * Write topologies and components in JRuby
-* Storm is Java and Clojure
-* RedStorm is JRuby
-
-introduce RedStorm
-  storm is written for the JVM (mix of clojure and java) with APIs for Java and Clojure
-  there are several ways to integrate across languages (namely: JVM-native, thrift for topos, json-over-stdio shelling for spouts/bolts)
-  show an example
-    * word_count_topology
-  discuss how the code is setting up the topology
-  run it locally to see what it looks like
+* Storm is written for the JVM in Java and Clojure
+* there are several ways to integrate across languages (namely: JVM-native, thrift for topos, json-over-stdio shelling for spouts/bolts)
+* RedStorm is a JRuby adapter library
 
 ---
 
-# RedStorm
-
-    !ruby
-    class RandomSentenceSpout < RedStorm::SimpleSpout
-      output_fields :word
-
-      on_init do
-        @sentences = [
-          "the cow jumped over the moon",
-          "an apple a day keeps the doctor away",
-          "four score and seven years ago",
-          "snow white and the seven dwarfs",
-          "i am at two with nature"
-        ]
-      end
-
-      on_send do
-        @sentences[rand(@sentences.length)]
-      end
-    end
+# Example time!
 
 ---
 
-# RedStorm
+# Word count topology
 
-    !ruby
-    class SplitSentenceBolt < RedStorm::SimpleBolt
-      output_fields :word
+TODO resize image or something
 
-      on_receive do |tuple|
-        sentence = tuple.getString(0)
-        sentence.split(' ').map { |w| [w] }
-      end
-    end
+![word count topology](../images/word-count-topology.png)
 
 ---
 
-# RedStorm
+# Cluster deployment
 
-    !ruby
-    class WordCountBolt < RedStorm::SimpleBolt
-      output_fields :word, :count
-
-      on_init do
-        @counts = Hash.new(0)
-      end
-
-      on_receive do |tuple|
-        word = tuple.getString(0)
-        @counts[word] += 1
-
-        [word, @counts[word]]
-      end
-    end
-
-
----
-
-# Moving parts
-
-rename this
-
-* Nimbus node
-* ZooKeeper nodes
-* Supervisor nodes
+![storm cluster](../images/storm-cluster.png)
 
 # Presenter Notes
 
 * local mode vs cluster mode
 * 3 sets of nodes
-* nimbus node: master node, similar to hadoop jobtracker
+* Nimbus node: master node, similar to hadoop jobtracker
     * upload computations here
     * launches and coordinates workers, &
     *   moves them around when worker nodes fail
     * (not HA yet, but nimbus failure doesn't affect workers, so low-pri.  HA is on roadmap.)
-* zookeeper nodes:
+* ZooKeeper nodes:
+    * separate apache project
     * cluster coordination
-* supervisor nodes:
+    TODO improve this description from wiki
+* Supervisor nodes:
     * talk to nimbus via ZK to decide what to run on the machine
-    * start/stop worker processes as dictated by nimbus
+    * start/stop worker processes as necessary, as dictated by nimbus
 * implementation: JVM (java+clojure), 0mq, zookeeper, thrift
 * deployment: storm-deploy to automate deploment and provisioning on ec2
 
@@ -316,7 +260,7 @@ rename this
 
 # How processing is guaranteed
 
-TODO picture of tuple tree
+![tuple tree](../images/tuple-tree.png)
 
 # Presenter Notes
 
@@ -327,8 +271,7 @@ TODO picture of tuple tree
     * after a bolt finishes, it acks its input tuple
     * after a whole tree is acked, the root tuple is considered processed
 * this provides at-least-once semantics
-* a topology specifies a timeout for retry
-* _ who receives acks and decides to replay?  is it nimbus?  some quorum agreement amongst workers? via ZK?
+* a topology specifies a timeout for retry TOPOLOGY_MESSAGE_TIMEOUT_SECS default 30s
 
 ---
 
@@ -382,25 +325,34 @@ TODO what are the commands
       :services
       {
        :default {
-                 :blobstore-provider "aws-s3"
-                 :provider "aws-ec2"
-                 :environment {:user {:username "storm"
-                                      :private-key-path "~/.ec2/k.pem"
-                                      :public-key-path "~/.ec2/k.pem.pub"}
-                               :aws-user-id "1234-5678-9999"}
-                 :identity "AKIA1111111111111111"
-                 :credential "abCDEFghijklmnpOPQRSTuvWXyz1234567890123"
-                 :jclouds.regions "us-east-1"
-                 }
+           :blobstore-provider "aws-s3"
+           :provider "aws-ec2"
+           :environment {:user {:username "storm"
+                                :private-key-path "~/.ec2/k.pem"
+                                :public-key-path "~/.ec2/k.pem.pub"}
+                         :aws-user-id "1234-5678-9999"}
+           :identity "AKIA1111111111111111"
+           :credential "abCDEFghijklmnpOPQRSTuvWXyz1234567890123"
+           :jclouds.regions "us-east-1"
+           }
         })
+
+---
+
+# Tweitgeist
+
+[https://github.com/colinsurprenant/tweitgeist](https://github.com/colinsurprenant/tweitgeist)
+[http://tweitgeist.colinsurprenant.com](http://tweitgeist.colinsurprenant.com)
+
+![tweitgeist](../images/tweitgeist.png)
 
 ---
 
 # Higher-level abstractions
 
-* DRPC: Ad-hoc computations across your cluster
+* DRPC: Ad-hoc computations
 * Trident: state, transactions, exactly-once semantics
-* Lambda architecture
+* Lambda architecture: blend streaming and batch modes
 
 # Presenter Notes
 
@@ -411,18 +363,23 @@ TODO what are the commands
     * drpc server acts as a spout, emits function invocations
 * trident
     * also built atop storm primitives
-    * higher-level processing abstractions
-    _ what's the relationship here with state and also abstractions
-    * joins/grouping/aggregates/functions/filters
-    * stateful source/sink
     * exactly-once semantics with fault tolerance
-* combining both realtime and batch in your architecture
-    * it's not uncommon to have both realtime computation and offline/batch processing needs
-    * consider a queue/pubsub source like Kafka that is designed to flow into both offline and streaming systems
-    * "lambda architecture" http://www.manning.com/marz/
-    * unified query language: how to abstract over both realtime and batch processing
+    * stateful source/sink
+    * higher-level processing abstractions
+    * joins/grouping/aggregates/functions/filters
+    _ what's the relationship here with state and also abstractions
+* lambda
+    * not part of storm,
+    * but an approach to combining both realtime and batch in your architecture
+    * discussed in 2012 strange loop talk
+    * and in book "big data" http://www.manning.com/marz/
 
 ---
+
+# Questions!
+
+---
+
 
 # Resources: Software
 
@@ -445,20 +402,20 @@ TODO what are the commands
 # Resources: Talks
 
 * [ETE 2012 Talk](http://vimeo.com/40972420)
-    * In-depth discussion of Storm from April 2012
-    * "Storm: Distributed and fault-tolerant realtime computation"
+    * "Storm: Distributed and fault-tolerant realtime computation" - April 2012
 
 * [Runaway complexity in Big Data](http://www.infoq.com/presentations/Complexity-Big-Data)
-    * Contemporary thoughts on how to structure data systems
-    * "Common sources of complexity in data systems and a design for a fundamentally better data system"
+    * "Common sources of complexity in data systems and a design for a fundamentally better data system" - October 2012
 
 ---
 
 # Resources: Book
 
-* ["Big Data"](http://manning.com/marz/)
+* [Big Data](http://manning.com/marz/)
     * Early access book by Nathan Marz
     * "Principles and best practices of scalable realtime data systems"
+
+![big data book](http://manning.com/marz/marz_cover150.jpg)
 
 ---
 
@@ -468,3 +425,9 @@ TODO what are the commands
 * [Event Stream Processor Matrix](http://blog.sematext.com/2011/09/26/event-stream-processor-matrix/)
 * [Quora: Are there any open-source CEP tools?](http://www.quora.com/Complex-Event-Processing-CEP/Are-there-any-open-source-CEP-tools)
 * [Ilya Grigorik's "StreamSQL: Event Processing with Esper"](http://www.igvita.com/2011/05/27/streamsql-event-processing-with-esper/)
+
+---
+
+# Thanks!
+
+[http://github.com/jasonm/redstorm-talk](http://github.com/jasonm/redstorm-talk)

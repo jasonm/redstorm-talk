@@ -1,9 +1,23 @@
+div.slides {
+  background-color: #eec;
+}
+
+div.slide {
+  background: -webkit-gradient(linear, left bottom, left top, from(white), to(#eed));
+  color: #f00;
+}
+
+section, header, header>h1 {
+  font-family: Georgia !important;;
+  font-weight: normal !important;
+}
+
 div.slide p {
   font-size: 40px;
 }
 
 pre {
-  font-size: 32px;
+  font-size: 20px;
 }
 
 li {
