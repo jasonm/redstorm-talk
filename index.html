@@ -25,7 +25,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>RedStorm</title>
+    <title>Storm &amp; RedStorm</title>
     <!-- Styles -->
     
     <link rel="stylesheet" media="print" href="file:///Library/Python/2.7/site-packages/landslide-1.1.1-py2.7.egg/landslide/themes/default/css/print.css">
@@ -57,7 +57,7 @@
         <div class="slide">
           <div class="inner">
             
-            <header><h1>RedStorm</h1></header>
+            <header><h1>Storm &amp; RedStorm</h1></header>
             
             
             <section><h1>Distributed Realtime Computation in Ruby</h1>
@@ -79,7 +79,7 @@
             </aside>
             
             <aside class="page_number">
-              1/32
+              1/36
             </aside>
           </footer>
         </div>
@@ -99,7 +99,9 @@
             <section>
             
               <ul>
-<li>1 processing machine is not sufficient</li>
+<li>design of data processing systems</li>
+<li>interesting case: 1 processing machine is not sufficient</li>
+<li>could be for many reasons: high ingest volume, expensive computation, or tight latency requirements</li>
 </ul>
             
             </section>
@@ -111,7 +113,7 @@
             </aside>
             
             <aside class="page_number">
-              2/32
+              2/36
             </aside>
           </footer>
         </div>
@@ -122,16 +124,13 @@
         <div class="slide">
           <div class="inner">
             
-            <header><h1>Design considerations</h1></header>
+            <header><h1>DFS + map-reduce</h1></header>
             
             
             <section><ul>
-<li>Data retention needs<ul>
-<li>Adhoc vs known queries</li>
-<li>Timeframe of queries</li>
-</ul>
-</li>
-<li>Value of low latency</li>
+<li>Queries are functions over all data</li>
+<li>Queries typically executed in batch mode, offline</li>
+<li>Results are high-latency</li>
 </ul>
 </section>
             
@@ -153,11 +152,51 @@
   mode is a great fit.</p>
 </li>
 </ul>
-<p>However, when:</p>
+<p>However, there are plenty of use cases where these parameters don't quite fit.</p>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              3/36
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Design considerations</h1></header>
+            
+            
+            <section><ul>
+<li>Value of low latency</li>
+<li>Data retention needs<ul>
+<li>Adhoc vs known queries</li>
+<li>Timeframe of queries</li>
+</ul>
+</li>
+</ul>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <p>Consider, when:</p>
 <ul>
 <li>low latency is valuable</li>
 <li>you know queries ahead of time</li>
-<li>query domain is a subset of all data across a relatively small time window</li>
+<li>query domain covers small time windows</li>
 </ul>
 <p>then a stream processing model can allow you to get at your answers in a much
   faster, and cheaper way.</p>
@@ -175,7 +214,7 @@
             </aside>
             
             <aside class="page_number">
-              3/32
+              4/36
             </aside>
           </footer>
         </div>
@@ -186,45 +225,11 @@
         <div class="slide">
           <div class="inner">
             
-            <header><h1>Complex event processing (CEP)</h1></header>
+            <header><h1>Queues &amp; workers</h1></header>
             
             
-            <section><p><em>or "Event stream processing" (ESP)</em></p>
-<ul>
-<li>Store queries instead of data</li>
-<li>Process each event in real-time</li>
-<li>Emit results when some query criteria is met</li>
-</ul></section>
-            
-          </div>
-          <div class="presenter_notes">
-            <header><h1>Presenter Notes</h1></header>
-            <section>
-            
-            </section>
-          </div>
-          <footer>
-            
-            <aside class="source">
-              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
-            </aside>
-            
-            <aside class="page_number">
-              4/32
-            </aside>
-          </footer>
-        </div>
-      </div>
-      
-      <!-- slide source: slides/slides.markdown -->
-      <div class="slide-wrapper">
-        <div class="slide">
-          <div class="inner">
-            
-            <header><h1>Have you ever...?</h1></header>
-            
-            
-            <section><p><img alt="workers and queues" src="file:///Users/jason/dev/storm-talk/slides/../images/workers-queues.png" /></p>
+            <section><p>TODO remake image
+<img alt="workers and queues" src="file:///Users/jason/dev/storm-talk/slides/../images/workers-queues.png" /></p>
 </section>
             
           </div>
@@ -232,12 +237,31 @@
             <header><h1>Presenter Notes</h1></header>
             <section>
             
-              <p>Have you ever written a queue+worker system to process incoming information?
-  ...with multiple layers?
-  ...fault tolerance
-  ...data processing guarantees (at-least-once, exactly-once semantics)
-  ...horizontal scalability
-  ...transactional semantics</p>
+              <ul>
+<li>First, I want to examine a typical approach to assembling a realtime system:</li>
+</ul>
+<p>Hands up, ever written a system made of queues+workers to process incoming data?</p>
+<ul>
+<li>architecture here is<ul>
+<li>an incoming stream of data, from a web frontend or work queue or subscription to streaming API</li>
+<li>cluster of queues persisting that data as jobs</li>
+<li>cluster of workers taking jobs off the queue, working them, maybe persisting out to some store,
+  and then emitting their processing results forward into the next queue layer</li>
+<li>then more workers, maybe more persistence</li>
+</ul>
+</li>
+</ul>
+<p>Then you'll know there are some challenges...</p>
+<ul>
+<li>data processing guarantees</li>
+<li>fault tolerance</li>
+<li>queues impose latency between layers<ul>
+<li>with any reliability guarantees, they are complex moving parts</li>
+<li>impose a 3rd party between worker layers, where message has to go to disk</li>
+</ul>
+</li>
+<li>without another layer of abstraction, coding is tedius - spending your time thinking about where to write message to, where do I read messages from, how do I serialize messages, etc.</li>
+</ul>
             
             </section>
           </div>
@@ -248,7 +272,67 @@
             </aside>
             
             <aside class="page_number">
-              5/32
+              5/36
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Storm</h1></header>
+            
+            
+            <section><p><img alt="storm on github" src="file:///Users/jason/dev/storm-talk/slides/../images/storm-github.png" /></p></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              6/36
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Storm</h1></header>
+            
+            
+            <section><p><img alt="twitter analytics" src="file:///Users/jason/dev/storm-talk/slides/../images/twitter-analytics.png" /></p></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              7/36
             </aside>
           </footer>
         </div>
@@ -263,9 +347,10 @@
             
             
             <section><ul>
-<li>No intermediate message brokers</li>
-<li>Fault tolerance</li>
+<li>Guaranteed data processing</li>
 <li>Horizontal scalability</li>
+<li>Fault tolerance</li>
+<li>No intermediate message brokers</li>
 <li>Easy to use</li>
 </ul>
 </section>
@@ -276,12 +361,11 @@
             <section>
             
               <ul>
-<li>Fault tolerance: When errors happen, guarantee that data flowing into your cluster will be processed at least once, or exactly once, as you choose</li>
-<li>Remove intermediate queues/message brokers
-    they are complex moving parts
-    they are slower than direct worker:worker communication
-    but without them, how do we handle fault tolerance?</li>
+<li>Guaranteed data processing: When errors happen, guarantee that data flowing into your cluster will be processed at least once, or exactly once, as you choose</li>
 <li>Horizontal scalability: Tweak parallelization of computations and cluster resources to match your workload</li>
+<li>Fault tolerance: If there are any errors or when nodes fail, system should handle this gracefully and keep running</li>
+<li>Remove intermediate queues/message brokers
+    but without them, how do we handle fault tolerance?</li>
 <li>Easy to use: Focus on your computations, not infrastructure</li>
 </ul>
             
@@ -294,7 +378,7 @@
             </aside>
             
             <aside class="page_number">
-              6/32
+              8/36
             </aside>
           </footer>
         </div>
@@ -339,7 +423,7 @@
             </aside>
             
             <aside class="page_number">
-              7/32
+              9/36
             </aside>
           </footer>
         </div>
@@ -374,7 +458,7 @@
             </aside>
             
             <aside class="page_number">
-              8/32
+              10/36
             </aside>
           </footer>
         </div>
@@ -412,7 +496,7 @@
             </aside>
             
             <aside class="page_number">
-              9/32
+              11/36
             </aside>
           </footer>
         </div>
@@ -452,7 +536,7 @@
             </aside>
             
             <aside class="page_number">
-              10/32
+              12/36
             </aside>
           </footer>
         </div>
@@ -492,7 +576,7 @@
             </aside>
             
             <aside class="page_number">
-              11/32
+              13/36
             </aside>
           </footer>
         </div>
@@ -528,7 +612,7 @@
             </aside>
             
             <aside class="page_number">
-              12/32
+              14/36
             </aside>
           </footer>
         </div>
@@ -563,7 +647,7 @@
             </aside>
             
             <aside class="page_number">
-              13/32
+              15/36
             </aside>
           </footer>
         </div>
@@ -600,7 +684,7 @@
             </aside>
             
             <aside class="page_number">
-              14/32
+              16/36
             </aside>
           </footer>
         </div>
@@ -647,7 +731,7 @@
             </aside>
             
             <aside class="page_number">
-              15/32
+              17/36
             </aside>
           </footer>
         </div>
@@ -685,7 +769,7 @@
             </aside>
             
             <aside class="page_number">
-              16/32
+              18/36
             </aside>
           </footer>
         </div>
@@ -713,7 +797,7 @@
             </aside>
             
             <aside class="page_number">
-              17/32
+              19/36
             </aside>
           </footer>
         </div>
@@ -744,7 +828,53 @@
             </aside>
             
             <aside class="page_number">
-              18/32
+              20/36
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Data processing guarantees</h1></header>
+            
+            
+            <section><p><img alt="tuple tree" src="file:///Users/jason/dev/storm-talk/slides/../images/tuple-tree.png" /></p>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <ul>
+<li>tuple tree<ul>
+<li>rooted as a spout emits a single tuple</li>
+<li>as bolts emit new tuples, they are anchored to the input tuple</li>
+</ul>
+</li>
+<li>ack<ul>
+<li>after a bolt finishes, it acks its input tuple</li>
+<li>after a whole tree is acked, the root tuple is considered processed</li>
+</ul>
+</li>
+<li>this provides at-least-once semantics</li>
+<li>a topology specifies a timeout for retry TOPOLOGY_MESSAGE_TIMEOUT_SECS default 30s</li>
+</ul>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              21/36
             </aside>
           </footer>
         </div>
@@ -800,53 +930,7 @@ TODO improve this description from wiki</li>
             </aside>
             
             <aside class="page_number">
-              19/32
-            </aside>
-          </footer>
-        </div>
-      </div>
-      
-      <!-- slide source: slides/slides.markdown -->
-      <div class="slide-wrapper">
-        <div class="slide">
-          <div class="inner">
-            
-            <header><h1>How processing is guaranteed</h1></header>
-            
-            
-            <section><p><img alt="tuple tree" src="file:///Users/jason/dev/storm-talk/slides/../images/tuple-tree.png" /></p>
-</section>
-            
-          </div>
-          <div class="presenter_notes">
-            <header><h1>Presenter Notes</h1></header>
-            <section>
-            
-              <ul>
-<li>tuple tree<ul>
-<li>rooted as a spout emits a single tuple</li>
-<li>as bolts emit new tuples, they are anchored to the input tuple</li>
-</ul>
-</li>
-<li>ack<ul>
-<li>after a bolt finishes, it acks its input tuple</li>
-<li>after a whole tree is acked, the root tuple is considered processed</li>
-</ul>
-</li>
-<li>this provides at-least-once semantics</li>
-<li>a topology specifies a timeout for retry TOPOLOGY_MESSAGE_TIMEOUT_SECS default 30s</li>
-</ul>
-            
-            </section>
-          </div>
-          <footer>
-            
-            <aside class="source">
-              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
-            </aside>
-            
-            <aside class="page_number">
-              20/32
+              22/36
             </aside>
           </footer>
         </div>
@@ -884,7 +968,7 @@ TODO improve this description from wiki</li>
             </aside>
             
             <aside class="page_number">
-              21/32
+              23/36
             </aside>
           </footer>
         </div>
@@ -898,21 +982,33 @@ TODO improve this description from wiki</li>
             <header><h1>storm-deploy</h1></header>
             
             
-            <section><div class="highlight"><pre><span class="lineno"> 1</span> <span class="c1"># /path/to/storm-deploy/conf/clusters.yaml</span>
-<span class="lineno"> 2</span> 
-<span class="lineno"> 3</span> <span class="l-Scalar-Plain">nimbus.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>      <span class="c1"># 64-bit ubuntu</span>
-<span class="lineno"> 4</span> <span class="l-Scalar-Plain">nimbus.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;m1.large&quot;</span>
-<span class="lineno"> 5</span> 
-<span class="lineno"> 6</span> <span class="l-Scalar-Plain">supervisor.count</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">2</span>
-<span class="lineno"> 7</span> <span class="l-Scalar-Plain">supervisor.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>  <span class="c1"># 64-bit ubuntu</span>
-<span class="lineno"> 8</span> <span class="l-Scalar-Plain">supervisor.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;c1.xlarge&quot;</span>
-<span class="lineno"> 9</span> <span class="c1">#supervisor.spot.price: 1.60</span>
-<span class="lineno">10</span> 
-<span class="lineno">11</span> <span class="l-Scalar-Plain">zookeeper.count</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">1</span>
-<span class="lineno">12</span> <span class="l-Scalar-Plain">zookeeper.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>   <span class="c1"># 64-bit ubuntu</span>
-<span class="lineno">13</span> <span class="l-Scalar-Plain">zookeeper.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;m1.large&quot;</span>
-</pre></div>
+            <section><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13</pre></div></td><td class="code"><div class="highlight"><pre><span class="c1"># /path/to/storm-deploy/conf/clusters.yaml</span>
 
+<span class="l-Scalar-Plain">nimbus.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>      <span class="c1"># 64-bit ubuntu</span>
+<span class="l-Scalar-Plain">nimbus.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;m1.large&quot;</span>
+
+<span class="l-Scalar-Plain">supervisor.count</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">2</span>
+<span class="l-Scalar-Plain">supervisor.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>  <span class="c1"># 64-bit ubuntu</span>
+<span class="l-Scalar-Plain">supervisor.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;c1.xlarge&quot;</span>
+<span class="c1">#supervisor.spot.price: 1.60</span>
+
+<span class="l-Scalar-Plain">zookeeper.count</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">1</span>
+<span class="l-Scalar-Plain">zookeeper.image</span><span class="p-Indicator">:</span> <span class="s">&quot;us-east-1/ami-08f40561&quot;</span>   <span class="c1"># 64-bit ubuntu</span>
+<span class="l-Scalar-Plain">zookeeper.hardware</span><span class="p-Indicator">:</span> <span class="s">&quot;m1.large&quot;</span>
+</pre></div>
+</td></tr></table>
 </section>
             
           </div>
@@ -920,9 +1016,10 @@ TODO improve this description from wiki</li>
             <header><h1>Presenter Notes</h1></header>
             <section>
             
-              <p>1-click deploy tool for deploying clusters on AWS
-show off running on ec2
-TODO what are the commands</p>
+              <ul>
+<li>1-click deploy tool for deploying clusters on AWS</li>
+<li>show off running on ec2</li>
+</ul>
             
             </section>
           </div>
@@ -933,7 +1030,7 @@ TODO what are the commands</p>
             </aside>
             
             <aside class="page_number">
-              22/32
+              24/36
             </aside>
           </footer>
         </div>
@@ -947,25 +1044,17 @@ TODO what are the commands</p>
             <header><h1>storm-deploy</h1></header>
             
             
-            <section><div class="highlight"><pre><span class="lineno"> 1</span> <span class="c1">; ~/.pallet/config.clj</span>
-<span class="lineno"> 2</span> 
-<span class="lineno"> 3</span> <span class="p">(</span><span class="nf">defpallet</span>
-<span class="lineno"> 4</span>   <span class="ss">:services</span>
-<span class="lineno"> 5</span>   <span class="p">{</span>
-<span class="lineno"> 6</span>    <span class="ss">:default</span> <span class="p">{</span>
-<span class="lineno"> 7</span>        <span class="ss">:blobstore-provider</span> <span class="s">&quot;aws-s3&quot;</span>
-<span class="lineno"> 8</span>        <span class="ss">:provider</span> <span class="s">&quot;aws-ec2&quot;</span>
-<span class="lineno"> 9</span>        <span class="ss">:environment</span> <span class="p">{</span><span class="ss">:user</span> <span class="p">{</span><span class="ss">:username</span> <span class="s">&quot;storm&quot;</span>
-<span class="lineno">10</span>                             <span class="ss">:private-key-path</span> <span class="s">&quot;~/.ec2/k.pem&quot;</span>
-<span class="lineno">11</span>                             <span class="ss">:public-key-path</span> <span class="s">&quot;~/.ec2/k.pem.pub&quot;</span><span class="p">}</span>
-<span class="lineno">12</span>                      <span class="ss">:aws-user-id</span> <span class="s">&quot;1234-5678-9999&quot;</span><span class="p">}</span>
-<span class="lineno">13</span>        <span class="ss">:identity</span> <span class="s">&quot;AKIA1111111111111111&quot;</span>
-<span class="lineno">14</span>        <span class="ss">:credential</span> <span class="s">&quot;abCDEFghijklmnpOPQRSTuvWXyz1234567890123&quot;</span>
-<span class="lineno">15</span>        <span class="ss">:jclouds.regions</span> <span class="s">&quot;us-east-1&quot;</span>
-<span class="lineno">16</span>        <span class="p">}</span>
-<span class="lineno">17</span>     <span class="p">})</span>
+            <section><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5</pre></div></td><td class="code"><div class="highlight"><pre><span class="c"># start a cluster</span>
+<span class="nv">$ </span>lein run :deploy --start --name mycluster --release 0.8.1
+
+<span class="c"># stop a cluster</span>
+<span class="nv">$ </span>lein run :deploy --stop --name mycluster
 </pre></div>
-</section>
+</td></tr></table></section>
             
           </div>
           <div class="presenter_notes">
@@ -981,7 +1070,71 @@ TODO what are the commands</p>
             </aside>
             
             <aside class="page_number">
-              23/32
+              25/36
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide has_code">
+          <div class="inner">
+            
+            <header><h1>storm-deploy</h1></header>
+            
+            
+            <section><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17</pre></div></td><td class="code"><div class="highlight"><pre><span class="c1">; ~/.pallet/config.clj</span>
+
+<span class="p">(</span><span class="nf">defpallet</span>
+  <span class="ss">:services</span>
+  <span class="p">{</span>
+   <span class="ss">:default</span> <span class="p">{</span>
+       <span class="ss">:blobstore-provider</span> <span class="s">&quot;aws-s3&quot;</span>
+       <span class="ss">:provider</span> <span class="s">&quot;aws-ec2&quot;</span>
+       <span class="ss">:environment</span> <span class="p">{</span><span class="ss">:user</span> <span class="p">{</span><span class="ss">:username</span> <span class="s">&quot;storm&quot;</span>
+                            <span class="ss">:private-key-path</span> <span class="s">&quot;~/.ec2/k.pem&quot;</span>
+                            <span class="ss">:public-key-path</span> <span class="s">&quot;~/.ec2/k.pem.pub&quot;</span><span class="p">}</span>
+                     <span class="ss">:aws-user-id</span> <span class="s">&quot;1234-5678-9999&quot;</span><span class="p">}</span>
+       <span class="ss">:identity</span> <span class="s">&quot;AKIA1111111111111111&quot;</span>
+       <span class="ss">:credential</span> <span class="s">&quot;abCDEFghijklmnpOPQRSTuvWXyz1234567890123&quot;</span>
+       <span class="ss">:jclouds.regions</span> <span class="s">&quot;us-east-1&quot;</span>
+       <span class="p">}</span>
+    <span class="p">})</span>
+</pre></div>
+</td></tr></table></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              26/36
             </aside>
           </footer>
         </div>
@@ -1013,7 +1166,7 @@ TODO what are the commands</p>
             </aside>
             
             <aside class="page_number">
-              24/32
+              27/36
             </aside>
           </footer>
         </div>
@@ -1074,7 +1227,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              25/32
+              28/36
             </aside>
           </footer>
         </div>
@@ -1102,7 +1255,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              26/32
+              29/36
             </aside>
           </footer>
         </div>
@@ -1139,7 +1292,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              27/32
+              30/36
             </aside>
           </footer>
         </div>
@@ -1175,7 +1328,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              28/32
+              31/36
             </aside>
           </footer>
         </div>
@@ -1218,7 +1371,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              29/32
+              32/36
             </aside>
           </footer>
         </div>
@@ -1255,7 +1408,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              30/32
+              33/36
             </aside>
           </footer>
         </div>
@@ -1290,7 +1443,7 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              31/32
+              34/36
             </aside>
           </footer>
         </div>
@@ -1304,7 +1457,10 @@ _ what's the relationship here with state and also abstractions</li>
             <header><h1>Thanks!</h1></header>
             
             
-            <section><p><a href="http://github.com/jasonm/redstorm-talk">http://github.com/jasonm/redstorm-talk</a></p></section>
+            <section><p><a href="http://github.com/jasonm/redstorm-talk">http://github.com/jasonm/redstorm-talk</a></p>
+<p>...........................................
+CLIP
+...........................................</p></section>
             
           </div>
           <div class="presenter_notes">
@@ -1320,7 +1476,49 @@ _ what's the relationship here with state and also abstractions</li>
             </aside>
             
             <aside class="page_number">
-              32/32
+              35/36
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: slides/slides.markdown -->
+      <div class="slide-wrapper">
+        <div class="slide">
+          <div class="inner">
+            
+            <header><h1>Complex event processors (CEP)</h1></header>
+            
+            
+            <section><p><em>or "Event stream processors" (ESP)</em></p>
+<ul>
+<li>Store queries instead of data</li>
+<li>Process each event in real-time</li>
+<li>Emit results when some query criteria is met</li>
+</ul>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+              <ul>
+<li>Family of tools that work just like that</li>
+<li>Varying degrees of abstraction</li>
+<li>Storm is one, there are more, ... Esper, S4, Drools Fusion, FlumeBase</li>
+</ul>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="slides/slides.markdown">slides/slides.markdown</a>
+            </aside>
+            
+            <aside class="page_number">
+              36/36
             </aside>
           </footer>
         </div>
@@ -1335,7 +1533,7 @@ _ what's the relationship here with state and also abstractions</li>
       <caption>Table of Contents</caption>
       
       <tr id="toc-row-1">
-        <th><a href="#slide1">RedStorm</a></th>
+        <th><a href="#slide1">Storm &amp; RedStorm</a></th>
         <td><a href="#slide1">1</a></td>
       </tr>
       
@@ -1347,182 +1545,206 @@ _ what's the relationship here with state and also abstractions</li>
       
       
       <tr id="toc-row-3">
-        <th><a href="#slide3">Design considerations</a></th>
+        <th><a href="#slide3">DFS + map-reduce</a></th>
         <td><a href="#slide3">3</a></td>
       </tr>
       
       
       <tr id="toc-row-4">
-        <th><a href="#slide4">Complex event processing (CEP)</a></th>
+        <th><a href="#slide4">Design considerations</a></th>
         <td><a href="#slide4">4</a></td>
       </tr>
       
       
       <tr id="toc-row-5">
-        <th><a href="#slide5">Have you ever...?</a></th>
+        <th><a href="#slide5">Queues &amp; workers</a></th>
         <td><a href="#slide5">5</a></td>
       </tr>
       
       
       <tr id="toc-row-6">
-        <th><a href="#slide6">Design goals of Storm:</a></th>
+        <th><a href="#slide6">Storm</a></th>
         <td><a href="#slide6">6</a></td>
       </tr>
       
       
       <tr id="toc-row-7">
-        <th><a href="#slide7">Example use cases</a></th>
+        <th><a href="#slide7">Storm</a></th>
         <td><a href="#slide7">7</a></td>
       </tr>
       
       
       <tr id="toc-row-8">
-        <th><a href="#slide8">Storm primitives</a></th>
+        <th><a href="#slide8">Design goals of Storm:</a></th>
         <td><a href="#slide8">8</a></td>
       </tr>
       
       
       <tr id="toc-row-9">
-        <th><a href="#slide9">Stream</a></th>
+        <th><a href="#slide9">Example use cases</a></th>
         <td><a href="#slide9">9</a></td>
       </tr>
       
       
       <tr id="toc-row-10">
-        <th><a href="#slide10">Spout</a></th>
+        <th><a href="#slide10">Storm primitives</a></th>
         <td><a href="#slide10">10</a></td>
       </tr>
       
       
       <tr id="toc-row-11">
-        <th><a href="#slide11">Bolt</a></th>
+        <th><a href="#slide11">Stream</a></th>
         <td><a href="#slide11">11</a></td>
       </tr>
       
       
       <tr id="toc-row-12">
-        <th><a href="#slide12">Topology</a></th>
+        <th><a href="#slide12">Spout</a></th>
         <td><a href="#slide12">12</a></td>
       </tr>
       
       
       <tr id="toc-row-13">
-        <th><a href="#slide13">Parallelism: <em>logical view</em></a></th>
+        <th><a href="#slide13">Bolt</a></th>
         <td><a href="#slide13">13</a></td>
       </tr>
       
       
       <tr id="toc-row-14">
-        <th><a href="#slide14">Parallelism: <em>physical view</em></a></th>
+        <th><a href="#slide14">Topology</a></th>
         <td><a href="#slide14">14</a></td>
       </tr>
       
       
       <tr id="toc-row-15">
-        <th><a href="#slide15">Stream grouping</a></th>
+        <th><a href="#slide15">Parallelism: <em>logical view</em></a></th>
         <td><a href="#slide15">15</a></td>
       </tr>
       
       
       <tr id="toc-row-16">
-        <th><a href="#slide16">RedStorm</a></th>
+        <th><a href="#slide16">Parallelism: <em>physical view</em></a></th>
         <td><a href="#slide16">16</a></td>
       </tr>
       
       
       <tr id="toc-row-17">
-        <th><a href="#slide17">Example time!</a></th>
+        <th><a href="#slide17">Stream grouping</a></th>
         <td><a href="#slide17">17</a></td>
       </tr>
       
       
       <tr id="toc-row-18">
-        <th><a href="#slide18">Word count topology</a></th>
+        <th><a href="#slide18">RedStorm</a></th>
         <td><a href="#slide18">18</a></td>
       </tr>
       
       
       <tr id="toc-row-19">
-        <th><a href="#slide19">Cluster deployment</a></th>
+        <th><a href="#slide19">Example time!</a></th>
         <td><a href="#slide19">19</a></td>
       </tr>
       
       
       <tr id="toc-row-20">
-        <th><a href="#slide20">How processing is guaranteed</a></th>
+        <th><a href="#slide20">Word count topology</a></th>
         <td><a href="#slide20">20</a></td>
       </tr>
       
       
       <tr id="toc-row-21">
-        <th><a href="#slide21">Storm UI</a></th>
+        <th><a href="#slide21">Data processing guarantees</a></th>
         <td><a href="#slide21">21</a></td>
       </tr>
       
       
       <tr id="toc-row-22">
-        <th><a href="#slide22">storm-deploy</a></th>
+        <th><a href="#slide22">Cluster deployment</a></th>
         <td><a href="#slide22">22</a></td>
       </tr>
       
       
       <tr id="toc-row-23">
-        <th><a href="#slide23">storm-deploy</a></th>
+        <th><a href="#slide23">Storm UI</a></th>
         <td><a href="#slide23">23</a></td>
       </tr>
       
       
       <tr id="toc-row-24">
-        <th><a href="#slide24">Tweitgeist</a></th>
+        <th><a href="#slide24">storm-deploy</a></th>
         <td><a href="#slide24">24</a></td>
       </tr>
       
       
       <tr id="toc-row-25">
-        <th><a href="#slide25">Higher-level abstractions</a></th>
+        <th><a href="#slide25">storm-deploy</a></th>
         <td><a href="#slide25">25</a></td>
       </tr>
       
       
       <tr id="toc-row-26">
-        <th><a href="#slide26">Questions!</a></th>
+        <th><a href="#slide26">storm-deploy</a></th>
         <td><a href="#slide26">26</a></td>
       </tr>
       
       
       <tr id="toc-row-27">
-        <th><a href="#slide27">Resources: Software</a></th>
+        <th><a href="#slide27">Tweitgeist</a></th>
         <td><a href="#slide27">27</a></td>
       </tr>
       
       
       <tr id="toc-row-28">
-        <th><a href="#slide28">Resources: Documentation</a></th>
+        <th><a href="#slide28">Higher-level abstractions</a></th>
         <td><a href="#slide28">28</a></td>
       </tr>
       
       
       <tr id="toc-row-29">
-        <th><a href="#slide29">Resources: Talks</a></th>
+        <th><a href="#slide29">Questions!</a></th>
         <td><a href="#slide29">29</a></td>
       </tr>
       
       
       <tr id="toc-row-30">
-        <th><a href="#slide30">Resources: Book</a></th>
+        <th><a href="#slide30">Resources: Software</a></th>
         <td><a href="#slide30">30</a></td>
       </tr>
       
       
       <tr id="toc-row-31">
-        <th><a href="#slide31">Resources: Other ESP/CEP resources</a></th>
+        <th><a href="#slide31">Resources: Documentation</a></th>
         <td><a href="#slide31">31</a></td>
       </tr>
       
       
       <tr id="toc-row-32">
-        <th><a href="#slide32">Thanks!</a></th>
+        <th><a href="#slide32">Resources: Talks</a></th>
         <td><a href="#slide32">32</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-33">
+        <th><a href="#slide33">Resources: Book</a></th>
+        <td><a href="#slide33">33</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-34">
+        <th><a href="#slide34">Resources: Other ESP/CEP resources</a></th>
+        <td><a href="#slide34">34</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-35">
+        <th><a href="#slide35">Thanks!</a></th>
+        <td><a href="#slide35">35</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-36">
+        <th><a href="#slide36">Complex event processors (CEP)</a></th>
+        <td><a href="#slide36">36</a></td>
       </tr>
       
       

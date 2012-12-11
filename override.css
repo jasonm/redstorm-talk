@@ -40,6 +40,7 @@ body.presenter_view div.slide {
 body.presenter_view div#current_presenter_notes {
   top: 15%;
   height: 100%;
+  font-size: 18px;
 }
 
 body.presenter_view div#current_presenter_notes section {
@@ -47,7 +48,7 @@ body.presenter_view div#current_presenter_notes section {
 }
 
 body.presenter_view div#current_presenter_notes li {
-  font-size: 14px;
+  font-size: 18px;
   padding: 0;
 }
 

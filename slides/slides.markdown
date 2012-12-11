@@ -1,4 +1,4 @@
-# RedStorm
+# Storm & RedStorm
 # Distributed Realtime Computation in Ruby
 # Jason Morrison
 # December 11, 2012
@@ -11,16 +11,17 @@
 
 # Presenter Notes
 
-* 1 processing machine is not sufficient
+* design of data processing systems
+* interesting case: 1 processing machine is not sufficient
+* could be for many reasons: high ingest volume, expensive computation, or tight latency requirements
 
 ---
 
-# Design considerations
+# DFS + map-reduce
 
-* Data retention needs
-    * Adhoc vs known queries
-    * Timeframe of queries
-* Value of low latency
+* Queries are functions over all data
+* Queries typically executed in batch mode, offline
+* Results are high-latency
 
 # Presenter Notes
 
@@ -33,11 +34,24 @@
   span large time-frames, or you don't know the queries up front, then batch
   mode is a great fit.
 
-  However, when:
+  However, there are plenty of use cases where these parameters don't quite fit.
+
+---
+
+# Design considerations
+
+* Value of low latency
+* Data retention needs
+    * Adhoc vs known queries
+    * Timeframe of queries
+
+# Presenter Notes
+
+  Consider, when:
 
   * low latency is valuable
   * you know queries ahead of time
-  * query domain is a subset of all data across a relatively small time window
+  * query domain covers small time windows
 
   then a stream processing model can allow you to get at your answers in a much
   faster, and cheaper way.
@@ -47,46 +61,58 @@
 
 ---
 
-# Complex event processing (CEP)
+# Queues & workers
 
-_or "Event stream processing" (ESP)_
-
-* Store queries instead of data
-* Process each event in real-time
-* Emit results when some query criteria is met
-
----
-
-# Have you ever...?
-
+TODO remake image
 ![workers and queues](../images/workers-queues.png)
 
 # Presenter Notes
 
-  Have you ever written a queue+worker system to process incoming information?
-  ...with multiple layers?
-  ...fault tolerance
-  ...data processing guarantees (at-least-once, exactly-once semantics)
-  ...horizontal scalability
-  ...transactional semantics
+* First, I want to examine a typical approach to assembling a realtime system:
+
+Hands up, ever written a system made of queues+workers to process incoming data?
+
+* architecture here is
+    * an incoming stream of data, from a web frontend or work queue or subscription to streaming API
+    * cluster of queues persisting that data as jobs
+    * cluster of workers taking jobs off the queue, working them, maybe persisting out to some store,
+      and then emitting their processing results forward into the next queue layer
+    * then more workers, maybe more persistence
+
+Then you'll know there are some challenges...
+
+* data processing guarantees
+* fault tolerance
+* queues impose latency between layers
+    * with any reliability guarantees, they are complex moving parts
+    * impose a 3rd party between worker layers, where message has to go to disk
+* without another layer of abstraction, coding is tedius - spending your time thinking about where to write message to, where do I read messages from, how do I serialize messages, etc.
+
+---
+# Storm
+![storm on github](../images/storm-github.png)
+
+---
+# Storm
+![twitter analytics](../images/twitter-analytics.png)
 
 ---
 
 # Design goals of Storm:
 
-* No intermediate message brokers
-* Fault tolerance
+* Guaranteed data processing
 * Horizontal scalability
+* Fault tolerance
+* No intermediate message brokers
 * Easy to use
 
 # Presenter Notes
 
-* Fault tolerance: When errors happen, guarantee that data flowing into your cluster will be processed at least once, or exactly once, as you choose
-* Remove intermediate queues/message brokers
-    they are complex moving parts
-    they are slower than direct worker:worker communication
-    but without them, how do we handle fault tolerance?
+* Guaranteed data processing: When errors happen, guarantee that data flowing into your cluster will be processed at least once, or exactly once, as you choose
 * Horizontal scalability: Tweak parallelization of computations and cluster resources to match your workload
+* Fault tolerance: If there are any errors or when nodes fail, system should handle this gracefully and keep running
+* Remove intermediate queues/message brokers
+    but without them, how do we handle fault tolerance?
 * Easy to use: Focus on your computations, not infrastructure
 
 ---
@@ -233,6 +259,22 @@ TODO resize image or something
 
 ---
 
+# Data processing guarantees
+
+![tuple tree](../images/tuple-tree.png)
+
+# Presenter Notes
+
+* tuple tree
+    * rooted as a spout emits a single tuple
+    * as bolts emit new tuples, they are anchored to the input tuple
+* ack
+    * after a bolt finishes, it acks its input tuple
+    * after a whole tree is acked, the root tuple is considered processed
+* this provides at-least-once semantics
+* a topology specifies a timeout for retry TOPOLOGY_MESSAGE_TIMEOUT_SECS default 30s
+---
+
 # Cluster deployment
 
 ![storm cluster](../images/storm-cluster.png)
@@ -256,22 +298,6 @@ TODO resize image or something
 * implementation: JVM (java+clojure), 0mq, zookeeper, thrift
 * deployment: storm-deploy to automate deploment and provisioning on ec2
 
----
-
-# How processing is guaranteed
-
-![tuple tree](../images/tuple-tree.png)
-
-# Presenter Notes
-
-* tuple tree
-    * rooted as a spout emits a single tuple
-    * as bolts emit new tuples, they are anchored to the input tuple
-* ack
-    * after a bolt finishes, it acks its input tuple
-    * after a whole tree is acked, the root tuple is considered processed
-* this provides at-least-once semantics
-* a topology specifies a timeout for retry TOPOLOGY_MESSAGE_TIMEOUT_SECS default 30s
 
 ---
 
@@ -292,7 +318,6 @@ TODO: show the screen
 
 # storm-deploy
 
-
     !yaml
     # /path/to/storm-deploy/conf/clusters.yaml
 
@@ -310,9 +335,19 @@ TODO: show the screen
 
 # Presenter Notes
 
-1-click deploy tool for deploying clusters on AWS
-show off running on ec2
-TODO what are the commands
+* 1-click deploy tool for deploying clusters on AWS
+* show off running on ec2
+
+---
+
+# storm-deploy
+
+    !bash
+    # start a cluster
+    $ lein run :deploy --start --name mycluster --release 0.8.1
+
+    # stop a cluster
+    $ lein run :deploy --stop --name mycluster
 
 ---
 
@@ -431,3 +466,28 @@ TODO what are the commands
 # Thanks!
 
 [http://github.com/jasonm/redstorm-talk](http://github.com/jasonm/redstorm-talk)
+
+
+
+
+
+...........................................
+CLIP
+...........................................
+
+---
+
+# Complex event processors (CEP)
+
+_or "Event stream processors" (ESP)_
+
+* Store queries instead of data
+* Process each event in real-time
+* Emit results when some query criteria is met
+
+# Presenter Notes
+
+* Family of tools that work just like that
+* Varying degrees of abstraction
+* Storm is one, there are more, ... Esper, S4, Drools Fusion, FlumeBase
+
