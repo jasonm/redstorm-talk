@@ -509,5 +509,4 @@ Tuple tree:
 
 # Thanks!
 
-[http://github.com/jasonm/redstorm-talk](http://github.com/jasonm/redstorm-talk)
-* Diagrams from Nathan Marz' [Storm: Distributed and fault-tolerant realtime computation](http://chariotsolutions.com/presentations/storm-distributed-and-fault-tolerant-realtime-comp)
+_Diagrams from Nathan Marz' "Storm: Distributed and fault-tolerant realtime computation" [talk](http://chariotsolutions.com/presentations/storm-distributed-and-fault-tolerant-realtime-comp)._
