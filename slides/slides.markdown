@@ -441,9 +441,6 @@ Tuple tree:
     * also built atop storm primitives
     * exactly-once semantics with fault tolerance
     * stateful source/sink
-    * higher-level processing abstractions
-    * joins/grouping/aggregates/functions/filters
-    _ what's the relationship here with state and also abstractions
 * lambda
     * not part of storm,
     * but an approach to combining both realtime and batch in your architecture
