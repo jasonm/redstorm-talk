@@ -15,6 +15,7 @@
 * interesting case: 1 processing machine is not sufficient
 * use cases like web/engagement analytics, app logging and performance analytics logging, financial/ecommerce information, physical sensor data
 * could be for many reasons: high ingest volume, expensive computation, or tight latency requirements
+* even if your processing system isn't large, storm does a very good job of documenting and exposing clean primitives and abstractions that are at play in these systems, and are valuable to understand
 
 ---
 
@@ -419,7 +420,6 @@ Tuple tree:
 
 ![tweitgeist topology](../images/tweitgeist-topology.png)
 
-
 ---
 
 # But wait, there's more...
@@ -513,28 +513,4 @@ Tuple tree:
 # Thanks!
 
 [http://github.com/jasonm/redstorm-talk](http://github.com/jasonm/redstorm-talk)
-
-
-
-
-
-...........................................
-CLIP
-...........................................
-
----
-
-# Complex event processors (CEP)
-
-_or "Event stream processors" (ESP)_
-
-* Store queries instead of data
-* Process each event in real-time
-* Emit results when some query criteria is met
-
-# Presenter Notes
-
-* Family of tools that work just like that
-* Varying degrees of abstraction
-* Storm is one, there are more, ... Esper, S4, Drools Fusion, FlumeBase
-
+* Diagrams from Nathan Marz' [Storm: Distributed and fault-tolerant realtime computation](http://chariotsolutions.com/presentations/storm-distributed-and-fault-tolerant-realtime-comp)
